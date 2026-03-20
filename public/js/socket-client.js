@@ -14,7 +14,7 @@ class SocketClient {
     const SERVER_EVENTS = [
       'room_created','room_joined','player_joined','player_left',
       'room_updated','host_changed','chat_message','error_msg',
-      'game_starting','board_update','use_special','player_dead','game_over',
+      'game_starting','game_joined','board_update','use_special','player_dead','game_over',
     ];
     SERVER_EVENTS.forEach(ev => {
       this._socket.on(ev, data => this._emit(ev, data));
@@ -82,6 +82,14 @@ class SocketClient {
 
   rejoinRoom({ code, playerName, oldPlayerId }) {
     this._socket.emit('rejoin_room', { code, playerName, oldPlayerId });
+  }
+
+  joinGame({ roomCode, playerName, playerId }) {
+    this._socket.emit('join_game', { roomCode, playerName, playerId });
+  }
+
+  sendSlotUpdate(slots) {
+    this._socket.emit('update_slots', { slots });
   }
 
   leaveRoom() {

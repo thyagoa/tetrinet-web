@@ -36,6 +36,7 @@ function safeRoom(room) {
     players:       room.players,
     started:       room.started,
     maxPlayers:    maxPlayers(room.mode),
+    slots:         room.slots || [],
   };
 }
 
@@ -81,6 +82,7 @@ io.on('connection', socket => {
         alive:  true,
       }],
       started: false,
+      slots:   [],
     };
 
     rooms[code] = room;
@@ -211,7 +213,7 @@ io.on('connection', socket => {
       const playerSocket = io.sockets.sockets.get(p.id);
       if (playerSocket) {
         playerSocket.emit('game_starting', {
-          config: { ...config, playerName: p.name, isHost: p.id === room.host },
+          config: { ...config, playerName: p.name, playerId: p.id, isHost: p.id === room.host },
         });
       }
     });
@@ -251,6 +253,39 @@ io.on('connection', socket => {
   socket.on('leave_room', () => {
     cancelLeave(socket.id);
     handleLeave(socket);
+  });
+
+  // ----- UPDATE SLOTS -----
+  socket.on('update_slots', ({ slots }) => {
+    const code = socket.data.roomCode;
+    const room = rooms[code];
+    if (!room) return;
+    room.slots = slots || [];
+    // Notify others (not self — they already updated locally)
+    socket.to(code).emit('room_updated', { room: safeRoom(room) });
+  });
+
+  // ----- JOIN GAME (reconnect after lobby → game page navigation) -----
+  socket.on('join_game', ({ roomCode, playerName, playerId: oldPlayerId }) => {
+    const room = rooms[roomCode];
+    if (!room) return;
+
+    cancelLeave(oldPlayerId);
+
+    let player = room.players.find(p => p.id === oldPlayerId)
+              || room.players.find(p => p.name === playerName && !p.isBot);
+
+    if (player) {
+      const wasHost = player.id === room.host;
+      player.id = socket.id;
+      if (wasHost) room.host = socket.id;
+    }
+
+    socket.join(roomCode);
+    socket.data.roomCode = roomCode;
+    socket.data.playerId = socket.id;
+
+    socket.emit('game_joined', { playerId: socket.id });
   });
 
   // ----- REJOIN ROOM (page navigation reconnect) -----

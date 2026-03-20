@@ -10,6 +10,7 @@ const BOT_DIFF       = cfg.botDifficulty || 2;
 const IS_MULTIPLAYER = !!(cfg.isMultiplayer && typeof SERVER_URL !== 'undefined' && SERVER_URL);
 const IS_HOST        = !!(cfg.isHost);
 const ROOM_CODE      = cfg.roomCode || null;
+const MY_PLAYER_ID   = cfg.playerId || null; // socket.id from lobby, used to identify self in mp events
 
 // ===== MULTIPLAYER SOCKET =====
 // remotePlayers: id → { id, name, board, alive, team }
@@ -19,10 +20,15 @@ let mpSocket = null;
 if (IS_MULTIPLAYER && socketClient) {
   mpSocket = socketClient.socket;
 
+  // Join the game's socket.io room (new socket after page navigation from lobby)
+  if (ROOM_CODE && MY_PLAYER_ID) {
+    socketClient.joinGame({ roomCode: ROOM_CODE, playerName: PLAYER_NAME, playerId: MY_PLAYER_ID });
+  }
+
   // Receive board updates from remote players
   mpSocket.on('board_update', ({ boards }) => {
     boards.forEach(({ id, grid }) => {
-      if (id === 'player') return; // ignore self echoes
+      if (id === MY_PLAYER_ID || id === 'player') return; // ignore self echoes
       if (remotePlayers[id]) {
         remotePlayers[id].board.grid = grid;
         renderer.drawMini(id, remotePlayers[id].board, null);
@@ -32,9 +38,10 @@ if (IS_MULTIPLAYER && socketClient) {
 
   // Receive specials from remote attackers
   mpSocket.on('use_special', ({ attackerId, targetId, special }) => {
-    // Only apply if we didn't originate this (server echoes to all)
-    if (attackerId === 'player') return;
-    applySpecial(attackerId, targetId, special);
+    if (attackerId === MY_PLAYER_ID || attackerId === 'player') return; // ignore own echoes
+    // Translate targetId: if it's our socket.id, the local player is the target
+    const localTargetId = (MY_PLAYER_ID && targetId === MY_PLAYER_ID) ? 'player' : targetId;
+    applySpecial(attackerId, localTargetId, special);
   });
 
   // Remote player died
@@ -42,6 +49,7 @@ if (IS_MULTIPLAYER && socketClient) {
     if (remotePlayers[playerId]) {
       remotePlayers[playerId].alive = false;
       markBotDead(playerId);
+      checkGameOver();
     }
   });
 
@@ -88,10 +96,16 @@ if (IS_MULTIPLAYER) {
       bots.push(bot);
     });
   }
-  // Remote human players
-  (cfg.players || []).filter(p => !p.isBot && p.id !== cfg.playerName).forEach(rp => {
+  // Remote human players (filter out self using MY_PLAYER_ID)
+  (cfg.players || []).filter(p => !p.isBot && p.id !== MY_PLAYER_ID).forEach(rp => {
     remotePlayers[rp.id] = { id: rp.id, name: rp.name, board: new Board(), alive: true, team: 0 };
   });
+  // Guests don't run bots locally — add bots to remotePlayers so their mini boards update via board_update
+  if (!IS_HOST) {
+    (cfg.players || []).filter(p => p.isBot).forEach(bp => {
+      remotePlayers[bp.id] = { id: bp.id, name: bp.name, board: new Board(), alive: true, team: 0, isBot: true };
+    });
+  }
 } else {
   // Single-player / mock: build bots normally
   for (let i = 0; i < BOT_COUNT; i++) {
@@ -402,7 +416,7 @@ function playerDie() {
   const _goMsg = narrator.event('gameOver');
   if (_goMsg) logEvent(_goMsg, 'narrator');
   if (IS_MULTIPLAYER && socketClient) {
-    socketClient.sendPlayerDead('player');
+    socketClient.sendPlayerDead(MY_PLAYER_ID || 'player');
   }
   checkGameOver();
 }
@@ -556,7 +570,7 @@ function usePlayerSpecial() {
 
   // In multiplayer, notify server so other clients can apply the special too
   if (IS_MULTIPLAYER && socketClient) {
-    socketClient.sendSpecial('player', selectedTarget, special);
+    socketClient.sendSpecial(MY_PLAYER_ID || 'player', selectedTarget, special);
   }
 
   // Only log here if targeting a bot (self-targeting is logged inside applySpecial)
@@ -664,13 +678,13 @@ function showGameOver(winners) {
     sub.textContent   = '';
   } else if (Array.isArray(winners)) {
     winnerIds = winners.map(w => w.id);
-    const playerWon = winnerIds.includes('player');
+    const playerWon = winnerIds.includes('player') || (MY_PLAYER_ID && winnerIds.includes(MY_PLAYER_ID));
     title.textContent = playerWon ? i18n.t('game.victory') : i18n.t('game.gameOver');
     wt.textContent    = playerWon ? i18n.t('game.youWon') : '';
     sub.textContent   = i18n.t('game.winners', { names: winners.map(w => w.name).join(', ') });
   } else {
     winnerIds = [winners.id];
-    const playerWon = winners.id === 'player';
+    const playerWon = winners.id === 'player' || winners.id === MY_PLAYER_ID;
     title.textContent = playerWon ? i18n.t('game.victory') : i18n.t('game.gameOver');
     wt.textContent    = playerWon ? i18n.t('game.youWon') : `${winners.name} ${i18n.t('game.gameOver')}!`;
     sub.textContent   = i18n.t('game.winner', { name: winners.name });
@@ -700,7 +714,7 @@ function sendBoardSync(delta) {
   if (mpSyncTimer < MP_SYNC_RATE) return;
   mpSyncTimer = 0;
 
-  const boards = [{ id: 'player', grid: player.board.grid }];
+  const boards = [{ id: MY_PLAYER_ID || 'player', grid: player.board.grid }];
   if (IS_HOST) {
     bots.forEach(b => boards.push({ id: b.id, grid: b.board.grid }));
   }

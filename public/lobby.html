@@ -223,11 +223,13 @@
       if (mySlot !== -1) slots[mySlot] = null; // leave old slot
       slots[idx] = { playerId: server.playerId, playerName, isBot: false };
       renderSlots();
+      if (socketClient) socketClient.sendSlotUpdate(slots);
     }
 
     function vacateSlot(idx) {
       slots[idx] = null;
       renderSlots();
+      if (socketClient) socketClient.sendSlotUpdate(slots);
     }
 
     function assignBotToFirstEmpty(bot) {
@@ -482,6 +484,7 @@
     // ===== MOCK SERVER EVENTS =====
     server.on('room_updated', ({ room }) => {
       currentRoom = room;
+      if (room.slots && room.slots.length > 0) slots = room.slots;
       renderPlayers(room);
       renderSlots();
     });
