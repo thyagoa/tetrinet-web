@@ -352,6 +352,9 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: 14px;
 }
 /* You row */
+.scoreboard-table tr.sb-you {
+  border-left: 2px solid var(--accent);
+}
 .scoreboard-table tr.sb-you td {
   color: var(--accent);
 }

@@ -687,22 +687,13 @@ function buildScoreboard(winnerIds) {
   const teamHeader = document.getElementById('sbTeamHeader');
   if (teamHeader) teamHeader.classList.toggle('hidden', !isActualTeamMode);
 
-  // Sort: vencedores primeiro; em team mode agrupa por time; depois por score
-  const sorted = [...allPlayers()].sort((a, b) => {
-    const aWin = winnerIds.includes(a.id) ? 1 : 0;
-    const bWin = winnerIds.includes(b.id) ? 1 : 0;
-    if (aWin !== bWin) return bWin - aWin;
-    if (isActualTeamMode) {
-      const tA = a.team ?? 0, tB = b.team ?? 0;
-      if (tA !== tB) return tA - tB;
-    }
-    return b.score - a.score;
-  });
+  // Sort: ranking puramente por score decrescente
+  const sorted = [...allPlayers()].sort((a, b) => b.score - a.score);
 
   sorted.forEach((p, idx) => {
     const rank    = idx + 1;
     const isWin   = winnerIds.includes(p.id);
-    const isYou   = p.id === 'player';
+    const isYou   = p.id === 'player' || p.id === MY_PLAYER_ID;
     const isDead  = !p.alive && !isWin;
 
     const tr = document.createElement('tr');
@@ -718,9 +709,12 @@ function buildScoreboard(winnerIds) {
       ? `<td><span class="sb-team-dot" style="background:${TEAM_COLORS[(p.team ?? 0) % TEAM_COLORS.length]}"></span></td>`
       : '';
 
+    // Troféu antes do nome do vencedor em FFA/1v1
+    const displayName = (!isActualTeamMode && isWin ? '🏆 ' : '') + p.name;
+
     tr.innerHTML = `
       <td class="${rankClass}">${medal}</td>
-      <td>${p.name}</td>
+      <td>${displayName}</td>
       ${teamCell}
       <td>${p.score.toLocaleString()}</td>
       <td>${p.lines}</td>
@@ -739,9 +733,17 @@ function showGameOver(winners) {
   el.classList.remove('hidden');
   document.getElementById('deadOverlay').classList.add('hidden');
 
-  // Reset de estilos inline (pode ter sido setado por partida anterior em team mode)
-  wt.style.color      = '';
-  wt.style.textShadow = '';
+  // Reset de estilos inline (pode ter sido setado por partida anterior)
+  wt.style.color         = '';
+  wt.style.textShadow    = '';
+  title.style.color      = '';
+  title.style.textShadow = '';
+
+  // Helper: aplica estilo de derrota no título
+  function _setDefeatTitle() {
+    title.style.color      = 'var(--danger, #ff1744)';
+    title.style.textShadow = '0 0 16px rgba(255,23,68,0.5)';
+  }
 
   let winnerIds = [];
 
@@ -752,7 +754,13 @@ function showGameOver(winners) {
   } else if (Array.isArray(winners)) {
     winnerIds = winners.map(w => w.id);
     const playerWon = winnerIds.includes('player') || (MY_PLAYER_ID && winnerIds.includes(MY_PLAYER_ID));
-    title.textContent = playerWon ? i18n.t('game.victory') : i18n.t('game.gameOver');
+
+    if (playerWon) {
+      title.textContent = i18n.t('game.victory');
+    } else {
+      title.textContent = i18n.t('game.defeat');
+      _setDefeatTitle();
+    }
 
     const isActualTeamMode = ['2v2', '3v3', '2v2v2'].includes(GAME_MODE);
     if (isActualTeamMode) {
@@ -766,15 +774,21 @@ function showGameOver(winners) {
       wt.style.textShadow = `0 0 16px ${teamColor}80`;
       sub.textContent     = i18n.t('game.teamMembers', { names: winners.map(w => w.name).join(' & ') });
     } else {
-      wt.textContent  = playerWon ? i18n.t('game.youWon') : '';
+      wt.textContent  = playerWon ? i18n.t('game.youWon') : i18n.t('game.playerWins', { name: winners.map(w => w.name).join(', ') });
       sub.textContent = i18n.t('game.winners', { names: winners.map(w => w.name).join(', ') });
     }
   } else {
     winnerIds = [winners.id];
     const playerWon = winners.id === 'player' || winners.id === MY_PLAYER_ID;
-    title.textContent = playerWon ? i18n.t('game.victory') : i18n.t('game.gameOver');
-    wt.textContent    = playerWon ? i18n.t('game.youWon') : `${winners.name} ${i18n.t('game.gameOver')}!`;
-    sub.textContent   = i18n.t('game.winner', { name: winners.name });
+
+    if (playerWon) {
+      title.textContent = i18n.t('game.victory');
+    } else {
+      title.textContent = i18n.t('game.defeat');
+      _setDefeatTitle();
+    }
+    wt.textContent  = playerWon ? i18n.t('game.youWon') : i18n.t('game.playerWins', { name: winners.name });
+    sub.textContent = i18n.t('game.winner', { name: winners.name });
   }
 
   buildScoreboard(winnerIds);
@@ -783,7 +797,7 @@ function showGameOver(winners) {
     socketClient.sendGameOver(winners);
   }
 
-  const playerWon = winnerIds.includes('player');
+  const playerWon = winnerIds.includes('player') || (MY_PLAYER_ID && winnerIds.includes(MY_PLAYER_ID));
   if (playerWon) {
     const _vm = narrator.event('victory');
     if (_vm) logEvent(_vm, 'narrator');

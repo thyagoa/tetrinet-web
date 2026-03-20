@@ -112,6 +112,8 @@
     "draw":         "EMPATE!",
     "victory":      "🏆 VITÓRIA! 🏆",
     "youWon":       "🏆 VOCÊ VENCEU! 🏆",
+    "defeat":       "DERROTA!",
+    "playerWins":   "{name} VENCEU!",
     "winner":       "Vencedor: {name}",
     "winners":      "Vencedor(es): {names}",
     "team":         "TIME {n}",
