@@ -132,7 +132,14 @@ io.on('connection', socket => {
   socket.on('add_bot', ({ difficulty }) => {
     const code = socket.data.roomCode;
     const room = rooms[code];
-    if (!room || room.host !== socket.id) return;
+    if (!room) {
+      socket.emit('error_msg', { message: 'Sala não encontrada. Recarregue a página.' });
+      return;
+    }
+    if (room.host !== socket.id) {
+      socket.emit('error_msg', { message: 'Apenas o host pode adicionar bots.' });
+      return;
+    }
 
     if (room.players.length >= maxPlayers(room.mode)) {
       socket.emit('error_msg', { message: 'Sala cheia.' });
@@ -317,6 +324,9 @@ io.on('connection', socket => {
       player = { id: socket.id, name: playerName, isHost: false, isBot: false, alive: true };
       room.players.push(player);
     }
+
+    // Allow restarting the game after everyone returns to lobby
+    room.started = false;
 
     socket.join(code);
     socket.data.roomCode = code;

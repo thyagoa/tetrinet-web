@@ -539,6 +539,13 @@
 
         const oldPlayerId = lobbyData.playerId || null;
         socketClient.rejoinRoom({ code, playerName, oldPlayerId });
+
+        // Re-join if socket reconnects (e.g. brief network drop or Render cold start)
+        socketClient.socket.on('connect', () => {
+          const currentPlayerId = (JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}')).playerId || null;
+          socketClient.rejoinRoom({ code, playerName, oldPlayerId: currentPlayerId });
+        });
+
         return;
       }
 

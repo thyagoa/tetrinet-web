@@ -25,6 +25,13 @@ if (IS_MULTIPLAYER && socketClient) {
     socketClient.joinGame({ roomCode: ROOM_CODE, playerName: PLAYER_NAME, playerId: MY_PLAYER_ID });
   }
 
+  // Save game socket.id so lobby.html can correctly cancel pending leave when returning from game
+  mpSocket.on('game_joined', ({ playerId }) => {
+    const ld = JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}');
+    ld.playerId = playerId;
+    sessionStorage.setItem('tetrinet_lobby', JSON.stringify(ld));
+  });
+
   // Receive board updates from remote players
   mpSocket.on('board_update', ({ boards }) => {
     boards.forEach(({ id, grid }) => {
@@ -98,12 +105,12 @@ if (IS_MULTIPLAYER) {
   }
   // Remote human players (filter out self using MY_PLAYER_ID)
   (cfg.players || []).filter(p => !p.isBot && p.id !== MY_PLAYER_ID).forEach(rp => {
-    remotePlayers[rp.id] = { id: rp.id, name: rp.name, board: new Board(), alive: true, team: 0 };
+    remotePlayers[rp.id] = { id: rp.id, name: rp.name, board: new Board(), alive: true, team: 0, score: 0, lines: 0, level: 1 };
   });
   // Guests don't run bots locally — add bots to remotePlayers so their mini boards update via board_update
   if (!IS_HOST) {
     (cfg.players || []).filter(p => p.isBot).forEach(bp => {
-      remotePlayers[bp.id] = { id: bp.id, name: bp.name, board: new Board(), alive: true, team: 0, isBot: true };
+      remotePlayers[bp.id] = { id: bp.id, name: bp.name, board: new Board(), alive: true, team: 0, isBot: true, score: 0, lines: 0, level: 1 };
     });
   }
 } else {
