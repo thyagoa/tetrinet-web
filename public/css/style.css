@@ -374,6 +374,14 @@ input[type="range"]::-webkit-slider-thumb {
 .sb-rank-2 { color: #c0c0c0 !important; }
 .sb-rank-3 { color: #cd7f32 !important; }
 
+/* Indicador de time no scoreboard (modo 2v2/3v3/2v2v2) */
+.sb-team-dot {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
 /* Animate rows in */
 @keyframes sbRowIn {
   from { opacity: 0; transform: translateX(-12px); }

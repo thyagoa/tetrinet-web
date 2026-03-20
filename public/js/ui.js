@@ -681,11 +681,21 @@ function buildScoreboard(winnerIds) {
   if (!tbody) return;
   tbody.innerHTML = '';
 
-  // Sort all players: winners first, then by score desc
+  const isActualTeamMode = ['2v2', '3v3', '2v2v2'].includes(GAME_MODE);
+
+  // Mostrar/ocultar coluna TIME
+  const teamHeader = document.getElementById('sbTeamHeader');
+  if (teamHeader) teamHeader.classList.toggle('hidden', !isActualTeamMode);
+
+  // Sort: vencedores primeiro; em team mode agrupa por time; depois por score
   const sorted = [...allPlayers()].sort((a, b) => {
     const aWin = winnerIds.includes(a.id) ? 1 : 0;
     const bWin = winnerIds.includes(b.id) ? 1 : 0;
     if (aWin !== bWin) return bWin - aWin;
+    if (isActualTeamMode) {
+      const tA = a.team ?? 0, tB = b.team ?? 0;
+      if (tA !== tB) return tA - tB;
+    }
     return b.score - a.score;
   });
 
@@ -704,9 +714,14 @@ function buildScoreboard(winnerIds) {
     const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
     const rankClass = rank <= 3 ? `sb-rank-${rank}` : '';
 
+    const teamCell = isActualTeamMode
+      ? `<td><span class="sb-team-dot" style="background:${TEAM_COLORS[(p.team ?? 0) % TEAM_COLORS.length]}"></span></td>`
+      : '';
+
     tr.innerHTML = `
       <td class="${rankClass}">${medal}</td>
       <td>${p.name}</td>
+      ${teamCell}
       <td>${p.score.toLocaleString()}</td>
       <td>${p.lines}</td>
       <td>${p.level}</td>
@@ -724,6 +739,10 @@ function showGameOver(winners) {
   el.classList.remove('hidden');
   document.getElementById('deadOverlay').classList.add('hidden');
 
+  // Reset de estilos inline (pode ter sido setado por partida anterior em team mode)
+  wt.style.color      = '';
+  wt.style.textShadow = '';
+
   let winnerIds = [];
 
   if (!winners) {
@@ -734,8 +753,22 @@ function showGameOver(winners) {
     winnerIds = winners.map(w => w.id);
     const playerWon = winnerIds.includes('player') || (MY_PLAYER_ID && winnerIds.includes(MY_PLAYER_ID));
     title.textContent = playerWon ? i18n.t('game.victory') : i18n.t('game.gameOver');
-    wt.textContent    = playerWon ? i18n.t('game.youWon') : '';
-    sub.textContent   = i18n.t('game.winners', { names: winners.map(w => w.name).join(', ') });
+
+    const isActualTeamMode = ['2v2', '3v3', '2v2v2'].includes(GAME_MODE);
+    if (isActualTeamMode) {
+      const winTeam   = teams[winnerIds[0]] ?? 0;
+      const teamColor = TEAM_COLORS[winTeam % TEAM_COLORS.length];
+      const teamLabel = i18n.t('game.team', { n: winTeam + 1 });
+      wt.textContent      = playerWon
+        ? i18n.t('game.youWon')
+        : i18n.t('game.teamWins', { label: teamLabel });
+      wt.style.color      = teamColor;
+      wt.style.textShadow = `0 0 16px ${teamColor}80`;
+      sub.textContent     = i18n.t('game.teamMembers', { names: winners.map(w => w.name).join(' & ') });
+    } else {
+      wt.textContent  = playerWon ? i18n.t('game.youWon') : '';
+      sub.textContent = i18n.t('game.winners', { names: winners.map(w => w.name).join(', ') });
+    }
   } else {
     winnerIds = [winners.id];
     const playerWon = winners.id === 'player' || winners.id === MY_PLAYER_ID;
@@ -1075,8 +1108,8 @@ function startGame() {
   renderInventory();
   buildPlayersPanel();
 
-  // Aplica filtro de voz por time (no-op em FFA)
-  if (typeof voiceManager !== 'undefined' && GAME_MODE !== 'ffa') {
+  // Aplica filtro de voz por time (somente modos com times reais: 2v2, 3v3, 2v2v2)
+  if (typeof voiceManager !== 'undefined' && ['2v2', '3v3', '2v2v2'].includes(GAME_MODE)) {
     const socketTeamMap = {};
     allPlayers().forEach(p => { if (p.id) socketTeamMap[p.id] = p.team; });
     voiceManager.setTeamFilter(player.team, socketTeamMap);
@@ -1102,12 +1135,6 @@ document.getElementById('micBtn')?.addEventListener('click', () => {
 });
 
 // ===== BUTTONS =====
-document.getElementById('restartBtn').addEventListener('click', () => {
-  document.getElementById('gameOverOverlay').classList.add('hidden');
-  gameRunning = false;
-  doCountdown(3, startGame);
-});
-
 document.getElementById('lobbyBtn').addEventListener('click', () => {
   const winnerSub  = document.getElementById('winnerSub').textContent;
   const winnerText = document.getElementById('winnerText').textContent;

@@ -104,7 +104,7 @@ class VoiceManager {
       // capturando peers que conectam APÓS setTeamFilter() ter sido chamado.
       if (this._teamFilter) {
         const { myTeam, socketTeamMap } = this._teamFilter;
-        const ally = !myTeam || socketTeamMap[peerId] === myTeam;
+        const ally = socketTeamMap[peerId] === myTeam;
         gain.gain.value = ally ? 1.0 : 0.0;
       }
 
@@ -156,7 +156,7 @@ class VoiceManager {
     this._teamFilter = { myTeam, socketTeamMap };
     this.peers.forEach((p, socketId) => {
       if (!p.gainNode) return; // será aplicado em ontrack quando conectar
-      const ally = !myTeam || socketTeamMap[socketId] === myTeam;
+      const ally = socketTeamMap[socketId] === myTeam;
       p.gainNode.gain.value = ally ? 1.0 : 0.0;
     });
   }
