@@ -62,8 +62,8 @@ class Renderer {
     this.miniFlashes = {};        // id -> { color, alpha }
 
     // Calculate cell size to fit available space
-    // Available height = viewport - header(48) - padding(24)
-    const availH = window.innerHeight - 48 - 24;
+    // Desconta: header(48) + padding top(12) + gap(8) + bomb panel(44) + padding bottom(12)
+    const availH = window.innerHeight - 124;
     const availW = window.innerWidth - 180 - 240 - 24;
     const cellByH = Math.floor(availH / ROWS);
     const cellByW = Math.floor(availW / COLS);
