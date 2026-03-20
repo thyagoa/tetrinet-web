@@ -519,20 +519,38 @@
     i18n.load().then(() => {
       i18n.applyToDOM();
 
-      // In mock mode, load room from storage; in online mode, we get it via room_joined event
-      const room = (server._safeRoom ? server._safeRoom(code) : null);
-      if (!room && !socketClient) {
+      if (socketClient) {
+        // Online mode: reconnect to room after page navigation, then wait for room_joined
+        server.on('room_joined', ({ room }) => {
+          currentRoom  = room;
+          selectedMode = room.mode || 'ffa';
+          initSlots(selectedMode);
+          room.players.filter(p => p.isBot).forEach(b => assignBotToFirstEmpty(b));
+          renderPlayers(room);
+          renderSlots();
+          document.querySelectorAll('#configModeGrid .mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === selectedMode);
+          });
+          addSystemMsg(i18n.t('lobby.youJoined', { code, name: playerName }));
+        });
+
+        const oldPlayerId = lobbyData.playerId || null;
+        socketClient.rejoinRoom({ code, playerName, oldPlayerId });
+        return;
+      }
+
+      // Mock mode: load room from storage
+      const room = server._safeRoom(code);
+      if (!room) {
         addSystemMsg('⚠ ' + i18n.t('lobby.roomNotFound'));
         setTimeout(() => window.location.href = 'index.html', 2000);
         return;
       }
 
-      currentRoom  = room || { code, mode: initMode || 'ffa', botDifficulty: initDiff || 2, players: [], host: null };
+      currentRoom  = room;
       selectedMode = room.mode || 'ffa';
       initSlots(selectedMode);
-
       room.players.filter(p => p.isBot).forEach(b => assignBotToFirstEmpty(b));
-
       renderPlayers(room);
       renderSlots();
 

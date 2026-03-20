@@ -39,6 +39,25 @@ function safeRoom(room) {
   };
 }
 
+// ===== GRACE PERIOD FOR PAGE-NAVIGATION RECONNECTIONS =====
+const LEAVE_GRACE_MS = 8000;
+const pendingLeaves = {};
+
+function scheduleLeave(socket) {
+  if (pendingLeaves[socket.id]) return;
+  pendingLeaves[socket.id] = setTimeout(() => {
+    delete pendingLeaves[socket.id];
+    handleLeave(socket);
+  }, LEAVE_GRACE_MS);
+}
+
+function cancelLeave(socketId) {
+  if (pendingLeaves[socketId]) {
+    clearTimeout(pendingLeaves[socketId]);
+    delete pendingLeaves[socketId];
+  }
+}
+
 // ===== SOCKET HANDLERS =====
 io.on('connection', socket => {
   console.log('connect', socket.id);
@@ -229,12 +248,62 @@ io.on('connection', socket => {
     socket.to(code).emit('game_over', { winners });
   });
 
-  socket.on('leave_room', () => handleLeave(socket));
+  socket.on('leave_room', () => {
+    cancelLeave(socket.id);
+    handleLeave(socket);
+  });
+
+  // ----- REJOIN ROOM (page navigation reconnect) -----
+  socket.on('rejoin_room', ({ code, playerName, oldPlayerId }) => {
+    code = (code || '').toUpperCase();
+    const room = rooms[code];
+    if (!room) {
+      socket.emit('error_msg', { message: 'Sala não encontrada.' });
+      return;
+    }
+
+    // Cancel pending leave for old socket (race condition: disconnect fired before this)
+    cancelLeave(oldPlayerId);
+
+    // Find player by old socket id, or by name as fallback
+    let player = room.players.find(p => p.id === oldPlayerId)
+              || room.players.find(p => p.name === playerName && !p.isBot);
+
+    if (player) {
+      const wasHost = player.id === room.host;
+      player.id = socket.id;
+      if (wasHost) room.host = socket.id;
+    } else {
+      // Player was removed (race condition) — re-add
+      if (room.started) {
+        socket.emit('error_msg', { message: 'A partida já começou.' });
+        return;
+      }
+      player = { id: socket.id, name: playerName, isHost: false, isBot: false, alive: true };
+      room.players.push(player);
+    }
+
+    socket.join(code);
+    socket.data.roomCode = code;
+    socket.data.playerId = socket.id;
+
+    socket.emit('room_joined', {
+      code,
+      playerId: socket.id,
+      isHost: player.id === room.host,
+      room: safeRoom(room),
+    });
+    // Notify others that the player is back (updates their player list)
+    socket.to(code).emit('room_updated', { room: safeRoom(room) });
+  });
 
   // ----- DISCONNECT -----
   socket.on('disconnect', () => {
     console.log('disconnect', socket.id);
-    handleLeave(socket);
+    // Use grace period to allow page-navigation reconnections
+    if (socket.data.roomCode) {
+      scheduleLeave(socket);
+    }
   });
 
   function handleLeave(socket) {

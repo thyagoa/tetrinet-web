@@ -193,21 +193,23 @@
       setTimeout(() => el.classList.add('hidden'), 4000);
     }
 
-    server.on('room_created', ({ code }) => {
+    server.on('room_created', ({ code, playerId }) => {
       const name = getPlayerName();
       localStorage.setItem('tetrinet_player_name', name);
       sessionStorage.setItem('tetrinet_lobby', JSON.stringify({
         code, isHost: true, playerName: name,
         mode: selectedMode, botDifficulty: selectedDiff,
+        playerId,
       }));
       window.location.href = 'lobby.html';
     });
 
-    server.on('room_joined', ({ code }) => {
+    server.on('room_joined', ({ code, playerId }) => {
       const name = getPlayerName();
       localStorage.setItem('tetrinet_player_name', name);
       sessionStorage.setItem('tetrinet_lobby', JSON.stringify({
         code, isHost: false, playerName: name,
+        playerId,
       }));
       window.location.href = 'lobby.html';
     });

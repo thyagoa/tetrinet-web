@@ -26,10 +26,10 @@ class SocketClient {
       this._playerId = playerId;
       this._isHost   = true;
     });
-    this._socket.on('room_joined', ({ code, playerId }) => {
+    this._socket.on('room_joined', ({ code, playerId, isHost }) => {
       this._roomCode = code;
       this._playerId = playerId;
-      this._isHost   = false;
+      this._isHost   = isHost || false;
     });
     this._socket.on('host_changed', ({ newHostId }) => {
       if (newHostId === this._playerId) this._isHost = true;
@@ -78,6 +78,10 @@ class SocketClient {
 
   startGame(slots) {
     this._socket.emit('start_game', { slots });
+  }
+
+  rejoinRoom({ code, playerName, oldPlayerId }) {
+    this._socket.emit('rejoin_room', { code, playerName, oldPlayerId });
   }
 
   leaveRoom() {
