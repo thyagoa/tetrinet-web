@@ -554,6 +554,44 @@ input[type="range"]::-webkit-slider-thumb {
 .entry-error.hidden { display: none; }
 .specials-compact .sp-desc { display: none; }
 
+/* SERVER STATUS */
+.server-status {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-bottom: 16px; padding: 8px 16px; border-radius: 4px;
+  font-family: var(--font-pixel); font-size: 9px; letter-spacing: 1px;
+  border: 1px solid; transition: opacity 0.6s;
+}
+.server-status.hidden { display: none; }
+.server-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.server-status--connecting {
+  color: var(--danger); border-color: var(--danger);
+  background: rgba(255,23,68,0.08);
+}
+.server-status--connecting::before {
+  background: var(--danger);
+  animation: status-pulse 1s ease-in-out infinite;
+}
+.server-status--retrying {
+  color: var(--warn); border-color: var(--warn);
+  background: rgba(255,234,0,0.07);
+}
+.server-status--retrying::before {
+  background: var(--warn);
+  animation: status-pulse 0.6s ease-in-out infinite;
+}
+.server-status--online {
+  color: var(--success); border-color: var(--success);
+  background: rgba(0,230,118,0.07);
+}
+.server-status--online::before { background: var(--success); }
+.server-status--online.fade-out { opacity: 0; pointer-events: none; }
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; } 50% { opacity: 0.2; }
+}
+.start-btn:disabled {
+  opacity: 0.35; cursor: not-allowed; pointer-events: none;
+}
+
 /* ===== LOBBY ROOM PAGE ===== */
 .lobby-room-container { max-width: 1100px; }
 .lobby-header-compact { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
@@ -790,3 +828,53 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .tutorial-mode-name { font-family: var(--font-pixel); font-size: 9px; color: var(--accent); }
 .tutorial-mode-desc { font-size: 9px; color: var(--text2); }
+
+/* ===== SPECTATOR SLOTS (lobby) ===== */
+.slot-spectator {
+  opacity: 0.65;
+  border-style: dashed !important;
+}
+.slot-spectator .slot-icon { opacity: 0.5; }
+.slots-spectator-label {
+  border-color: var(--border) !important;
+  color: var(--text2) !important;
+}
+
+/* ===== SPECTATOR FOCUS (game) ===== */
+.player-card.spectator-focus {
+  outline: 2px solid #ffea00;
+  box-shadow: 0 0 10px rgba(255, 234, 0, 0.35);
+}
+
+/* ===== VOICE CHAT ===== */
+.mic-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text2);
+  font-size: 15px;
+  cursor: pointer;
+  padding: 3px 8px;
+  line-height: 1;
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.mic-btn:hover { border-color: var(--accent); color: var(--accent); }
+.mic-btn.muted  { border-color: var(--danger, #ff1744); color: var(--danger, #ff1744); }
+
+/* Indicador de fala — player card no jogo */
+.player-card.speaking {
+  box-shadow: 0 0 10px rgba(0, 230, 118, 0.6);
+  border-color: #00e676 !important;
+}
+
+/* Indicador de fala — lobby (player-row e slot-card) */
+.player-row.speaking .player-name::after,
+.slot-card.speaking .slot-name::after {
+  content: ' 🎤';
+  animation: mic-pulse 0.5s ease-in-out infinite alternate;
+}
+@keyframes mic-pulse {
+  from { opacity: 0.3; }
+  to   { opacity: 1;   }
+}

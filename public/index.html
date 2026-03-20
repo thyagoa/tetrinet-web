@@ -15,7 +15,7 @@
     <header class="lobby-header">
       <div class="logo-wrap">
         <h1 class="logo">TETRI<span>NET</span></h1>
-        <p class="logo-sub" data-i18n="ui.edition">BROWSER EDITION (v0.14b)</p>
+        <p class="logo-sub" data-i18n="ui.edition">BROWSER EDITION (v0.15b)</p>
       </div>
       <div class="logo-blocks">
         <span class="lb lb-i">&nbsp;</span>
@@ -35,6 +35,8 @@
         <a href="tutorial.html" class="tutorial-link" data-i18n="ui.tutorial">TUTORIAL</a>
         <a href="settings.html" class="settings-link">⚙ <span data-i18n="ui.settings">CONFIGURAÇÕES</span></a>
       </div>
+
+      <div id="serverStatus" class="server-status hidden"></div>
 
       <div class="entry-panels">
         <!-- CREATE ROOM -->
@@ -184,6 +186,50 @@
 
     function getPlayerName() {
       return (nameInput.value.trim() || 'JOGADOR_1').toUpperCase().slice(0,16);
+    }
+
+    // ===== SERVER STATUS INDICATOR =====
+    const statusEl  = document.getElementById('serverStatus');
+    const createBtn = document.getElementById('createBtn');
+    const joinBtn   = document.getElementById('joinBtn');
+
+    if (typeof SERVER_URL !== 'undefined' && SERVER_URL && socketClient) {
+      const sock = socketClient.socket;
+      let onlineTimer = null;
+
+      function setStatus(state, text) {
+        statusEl.className = 'server-status server-status--' + state;
+        statusEl.textContent = text;
+        if (onlineTimer) { clearTimeout(onlineTimer); onlineTimer = null; }
+      }
+
+      function setButtons(enabled) {
+        createBtn.disabled = !enabled;
+        joinBtn.disabled   = !enabled;
+      }
+
+      // Start locked
+      setButtons(false);
+      setStatus('connecting', 'CONECTANDO AO SERVIDOR...');
+
+      sock.on('connect', () => {
+        setStatus('online', 'SERVIDOR ONLINE');
+        setButtons(true);
+        onlineTimer = setTimeout(() => {
+          statusEl.classList.add('fade-out');
+          onlineTimer = setTimeout(() => statusEl.classList.add('hidden'), 700);
+        }, 2500);
+      });
+
+      sock.on('connect_error', () => {
+        setStatus('retrying', 'AGUARDANDO SERVIDOR...');
+        setButtons(false);
+      });
+
+      sock.on('disconnect', () => {
+        setStatus('connecting', 'RECONECTANDO...');
+        setButtons(false);
+      });
     }
 
     function showError(msg) {

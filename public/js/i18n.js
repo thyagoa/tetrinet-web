@@ -32,7 +32,7 @@ const LOCALE_PTBR = {
   },
   "ui": {
     "gameName": "TETRINET",
-    "edition": "BROWSER EDITION (v0.14b)",
+    "edition": "BROWSER EDITION (v0.15b)",
     "yourName": "SEU NOME",
     "tutorial": "TUTORIAL",
     "settings": "CONFIGURAÇÕES",

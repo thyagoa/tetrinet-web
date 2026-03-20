@@ -198,6 +198,21 @@ io.on('connection', socket => {
     io.to(code).emit('chat_message', entry);
   });
 
+  // ----- WEBRTC SIGNALING (relay P2P dentro da mesma sala) -----
+  ['webrtc_offer', 'webrtc_answer', 'webrtc_ice_candidate'].forEach(ev => {
+    socket.on(ev, ({ targetPlayerId, payload }) => {
+      const target = io.sockets.sockets.get(targetPlayerId);
+      if (target && target.data.roomCode === socket.data.roomCode) {
+        target.emit(ev, { fromPlayerId: socket.id, payload });
+      }
+    });
+  });
+
+  socket.on('voice_hello', ({ playerName }) => {
+    const code = socket.data.roomCode;
+    if (code) socket.to(code).emit('voice_hello', { fromPlayerId: socket.id, playerName });
+  });
+
   // ----- START GAME -----
   socket.on('start_game', ({ slots }) => {
     const code = socket.data.roomCode;
@@ -206,21 +221,29 @@ io.on('connection', socket => {
 
     room.started = true;
 
+    // Enriquecer players com isSpectator (via cross-ref com slots)
+    const slotsArr = slots || [];
+    const enrichedPlayers = room.players.map(p => ({
+      ...p,
+      isSpectator: !!(slotsArr.find(s => s?.playerId === p.id)?.isSpectator),
+    }));
+
     const config = {
       mode:          room.mode,
       botDifficulty: room.botDifficulty,
       roomCode:      code,
-      players:       room.players,
-      slots:         slots || [],
+      players:       enrichedPlayers,
+      slots:         slotsArr,
       isMultiplayer: true,
     };
 
-    // Send personalized config to each player (so they know their own name)
+    // Send personalized config to each player (so they know their own name + isSpectator)
     room.players.filter(p => !p.isBot).forEach(p => {
       const playerSocket = io.sockets.sockets.get(p.id);
       if (playerSocket) {
+        const isSpectator = !!(slotsArr.find(s => s?.playerId === p.id)?.isSpectator);
         playerSocket.emit('game_starting', {
-          config: { ...config, playerName: p.name, playerId: p.id, isHost: p.id === room.host },
+          config: { ...config, playerName: p.name, playerId: p.id, isHost: p.id === room.host, isSpectator },
         });
       }
     });

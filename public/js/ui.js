@@ -9,6 +9,7 @@ const BOT_COUNT      = Math.max(1, Math.min(5, cfg.botCount || 3));
 const BOT_DIFF       = cfg.botDifficulty || 2;
 const IS_MULTIPLAYER = !!(cfg.isMultiplayer && typeof SERVER_URL !== 'undefined' && SERVER_URL);
 const IS_HOST        = !!(cfg.isHost);
+const IS_SPECTATOR   = !!(cfg.isSpectator && IS_MULTIPLAYER);
 const ROOM_CODE      = cfg.roomCode || null;
 const MY_PLAYER_ID   = cfg.playerId || null; // socket.id from lobby, used to identify self in mp events
 
@@ -30,14 +31,31 @@ if (IS_MULTIPLAYER && socketClient) {
     const ld = JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}');
     ld.playerId = playerId;
     sessionStorage.setItem('tetrinet_lobby', JSON.stringify(ld));
+
+    // Init voice chat (playerId = novo socket.id nesta página)
+    if (typeof voiceManager !== 'undefined' && socketClient) {
+      voiceManager.init(playerId, socketClient, (sid, speaking) => {
+        const entry = cardMap[sid];
+        if (entry) entry.el.classList.toggle('speaking', speaking);
+      }).then(ok => {
+        if (!ok) return;
+        const micBtn = document.getElementById('micBtn');
+        if (micBtn) micBtn.classList.remove('hidden');
+        // Anuncia presença para peers na sala reconectarem
+        socketClient.sendVoiceHello(PLAYER_NAME);
+      });
+    }
   });
 
   // Receive board updates from remote players
   mpSocket.on('board_update', ({ boards }) => {
-    boards.forEach(({ id, grid }) => {
+    boards.forEach(({ id, grid, score, lines, level }) => {
       if (id === MY_PLAYER_ID || id === 'player') return; // ignore self echoes
       if (remotePlayers[id]) {
         remotePlayers[id].board.grid = grid;
+        if (score !== undefined) remotePlayers[id].score = score;
+        if (lines !== undefined) remotePlayers[id].lines = lines;
+        if (level !== undefined) remotePlayers[id].level = level;
         renderer.drawMini(id, remotePlayers[id].board, null);
       }
     });
@@ -56,6 +74,16 @@ if (IS_MULTIPLAYER && socketClient) {
     if (remotePlayers[playerId]) {
       remotePlayers[playerId].alive = false;
       markBotDead(playerId);
+      // Redireciona foco do espectador se o player assistido morreu
+      if (spectatorFocusId === playerId) {
+        Object.values(cardMap).forEach(c => c.el.classList.remove('spectator-focus'));
+        spectatorFocusId = null;
+        const nextAlive = alivePlayers().find(p => p.id !== 'player');
+        if (nextAlive) {
+          spectatorFocusId = nextAlive.id;
+          cardMap[nextAlive.id]?.el.classList.add('spectator-focus');
+        }
+      }
       checkGameOver();
     }
   });
@@ -103,8 +131,8 @@ if (IS_MULTIPLAYER) {
       bots.push(bot);
     });
   }
-  // Remote human players (filter out self using MY_PLAYER_ID)
-  (cfg.players || []).filter(p => !p.isBot && p.id !== MY_PLAYER_ID).forEach(rp => {
+  // Remote human players (filter out self and spectators)
+  (cfg.players || []).filter(p => !p.isBot && !p.isSpectator && p.id !== MY_PLAYER_ID).forEach(rp => {
     remotePlayers[rp.id] = { id: rp.id, name: rp.name, board: new Board(), alive: true, team: 0, score: 0, lines: 0, level: 1 };
   });
   // Guests don't run bots locally — add bots to remotePlayers so their mini boards update via board_update
@@ -142,7 +170,9 @@ const renderer     = new Renderer(mainCanvas, nextCanvas);
 // ===== PLAYERS PANEL (mini boards + target selection) =====
 const playersPanel = document.getElementById('playersPanel');
 const cardMap = {}; // id -> { el, canvas, bombCountEl }
-let selectedTarget = bots[0]?.id || null;
+let selectedTarget   = bots[0]?.id || null;
+let spectatorFocusId = null; // id do player cujo board é exibido no canvas principal
+let isSpectating     = IS_SPECTATOR;
 
 function buildPlayersPanel() {
   playersPanel.innerHTML = '';
@@ -190,7 +220,16 @@ function buildPlayersPanel() {
     card.appendChild(header);
     card.appendChild(cv);
     card.appendChild(stamp);
-    card.addEventListener('click', () => selectTarget(p.id));
+    card.addEventListener('click', () => {
+      if (isSpectating && !isSelf) {
+        // Modo espectador: troca board principal para este player
+        spectatorFocusId = p.id;
+        Object.values(cardMap).forEach(c => c.el.classList.remove('spectator-focus'));
+        cardMap[p.id]?.el.classList.add('spectator-focus');
+        return;
+      }
+      if (!isSelf) selectTarget(p.id);
+    });
 
     playersPanel.appendChild(card);
     cardMap[p.id] = { el: card, canvas: cv, bombCountEl };
@@ -417,6 +456,14 @@ function spawnPlayerPiece() {
 function playerDie() {
   player.alive = false;
   player.currentPiece = null;
+  isSpectating = true;
+  // Auto-foca o primeiro player vivo ao morrer
+  const firstAlive = alivePlayers().find(p => p.id !== 'player');
+  if (firstAlive) {
+    spectatorFocusId = firstAlive.id;
+    Object.values(cardMap).forEach(c => c.el.classList.remove('spectator-focus'));
+    cardMap[firstAlive.id]?.el.classList.add('spectator-focus');
+  }
   SFX.death();
   document.getElementById('deadOverlay').classList.remove('hidden');
   logEvent(i18n.t('game.youEliminated'), 'attack');
@@ -721,9 +768,9 @@ function sendBoardSync(delta) {
   if (mpSyncTimer < MP_SYNC_RATE) return;
   mpSyncTimer = 0;
 
-  const boards = [{ id: MY_PLAYER_ID || 'player', grid: player.board.grid }];
+  const boards = [{ id: MY_PLAYER_ID || 'player', grid: player.board.grid, score: player.score, lines: player.lines, level: player.level }];
   if (IS_HOST) {
-    bots.forEach(b => boards.push({ id: b.id, grid: b.board.grid }));
+    bots.forEach(b => boards.push({ id: b.id, grid: b.board.grid, score: b.score, lines: b.lines, level: b.level }));
   }
   socketClient.sendBoardUpdate(boards);
 }
@@ -862,12 +909,14 @@ function discardPlayerSpecial() {
 // ===== WATCH / LEAVE BUTTONS =====
 document.getElementById('watchBtn').addEventListener('click', () => {
   document.getElementById('deadOverlay').classList.add('hidden');
+  isSpectating = true; // playerDie já setou, mas garante
   logEvent(i18n.t('game.watching'), 'info');
 });
 
 document.getElementById('leaveBtn').addEventListener('click', () => {
   const confirmed = confirm(i18n.t('game.leaveConfirm'));
   if (confirmed) {
+    if (typeof voiceManager !== 'undefined') voiceManager.destroy();
     sessionStorage.removeItem('tetrinet_mock_session');
     sessionStorage.removeItem('tetrinet_lobby');
     window.location.href = 'index.html';
@@ -949,8 +998,13 @@ function gameLoop(ts) {
     if (bot.alive) bot.update(delta);
   });
 
-  // Render
-  if (player.alive && player.currentPiece) {
+  // Render — modo espectador: mostra board do player focado
+  if (isSpectating && spectatorFocusId) {
+    const focusTarget = allPlayers().find(p => p.id === spectatorFocusId);
+    if (focusTarget?.board) {
+      renderer.drawMain(focusTarget.board, focusTarget.currentPiece ?? null, null, ts);
+    }
+  } else if (player.alive && player.currentPiece) {
     const ghost = player.currentPiece.ghostRow(player.board);
     renderer.drawMain(player.board, player.currentPiece, ghost, ts);
   } else if (!player.alive) {
@@ -1021,6 +1075,13 @@ function startGame() {
   renderInventory();
   buildPlayersPanel();
 
+  // Aplica filtro de voz por time (no-op em FFA)
+  if (typeof voiceManager !== 'undefined' && GAME_MODE !== 'ffa') {
+    const socketTeamMap = {};
+    allPlayers().forEach(p => { if (p.id) socketTeamMap[p.id] = p.team; });
+    voiceManager.setTeamFilter(player.team, socketTeamMap);
+  }
+
   document.getElementById('gameOverOverlay').classList.add('hidden');
   document.getElementById('deadOverlay').classList.add('hidden');
   document.getElementById('eventLog').innerHTML = '';
@@ -1031,6 +1092,14 @@ function startGame() {
   lastTime    = performance.now();
   requestAnimationFrame(gameLoop);
 }
+
+// ===== MIC BUTTON =====
+document.getElementById('micBtn')?.addEventListener('click', () => {
+  if (typeof voiceManager === 'undefined') return;
+  const muted = voiceManager.toggleMute();
+  const btn = document.getElementById('micBtn');
+  if (btn) { btn.textContent = muted ? '🔇' : '🎤'; btn.classList.toggle('muted', muted); }
+});
 
 // ===== BUTTONS =====
 document.getElementById('restartBtn').addEventListener('click', () => {
@@ -1058,10 +1127,12 @@ document.getElementById('lobbyBtn').addEventListener('click', () => {
     } catch(e) {}
   }
 
+  if (typeof voiceManager !== 'undefined') voiceManager.destroy();
   window.location.href = 'lobby.html';
 });
 
 document.getElementById('menuBtn').addEventListener('click', () => {
+  if (typeof voiceManager !== 'undefined') voiceManager.destroy();
   sessionStorage.removeItem('tetrinet_mock_session');
   sessionStorage.removeItem('tetrinet_lobby');
   window.location.href = 'index.html';
@@ -1088,5 +1159,23 @@ i18n.load().then(() => {
   updateGlossary();
   updateNextBombPanel();
   updateSfxButton();
-  doCountdown(3, startGame);
+
+  if (IS_SPECTATOR) {
+    // Espectador: não joga, entra direto em modo assistir após countdown
+    player.alive = false;
+    isSpectating  = true;
+    doCountdown(3, () => {
+      gameRunning = true;
+      const firstAlive = alivePlayers()[0];
+      if (firstAlive) {
+        spectatorFocusId = firstAlive.id;
+        Object.values(cardMap).forEach(c => c.el.classList.remove('spectator-focus'));
+        cardMap[firstAlive.id]?.el.classList.add('spectator-focus');
+      }
+      lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    });
+  } else {
+    doCountdown(3, startGame);
+  }
 });
