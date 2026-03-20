@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TetriNET — Lobby</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="lobby-page">
+  <div class="scanlines"></div>
+
+  <div class="lobby-container lobby-room-container">
+    <header class="lobby-header lobby-header-compact">
+      <h1 class="logo logo-sm">TETRI<span>NET</span></h1>
+      <span style="font-family:var(--font-pixel);font-size:7px;color:var(--text2);letter-spacing:2px" data-i18n="ui.edition">BROWSER EDITION (v0.14b)</span>
+      <div class="room-code-display">
+        <span class="rc-label" data-i18n="ui.roomCode">CÓDIGO DA SALA</span>
+        <span class="rc-code" id="roomCodeDisplay">——————</span>
+        <button class="rc-copy" id="copyCodeBtn" data-i18n="ui.copy">⧉ COPIAR</button>
+        <button class="rc-share" id="shareLinkBtn" data-i18n="ui.copyLink">🔗 LINK</button>
+      </div>
+      <button class="back-btn" id="backBtn" data-i18n="ui.leave">← SAIR</button>
+    </header>
+
+    <main class="lobby-room-main">
+
+      <!-- LEFT: players + config + start -->
+      <div class="lobby-left">
+
+        <!-- PLAYERS -->
+        <section class="lob-panel">
+          <div class="lob-panel-header">
+            <span class="panel-title" style="margin:0;border:none;padding:0" data-i18n="lobby.players">JOGADORES</span>
+            <span class="players-count" id="playersCount">0 / 6</span>
+          </div>
+          <div class="players-list" id="playersList"></div>
+
+          <!-- ADD BOT (host only) -->
+          <div class="add-bot-wrap" id="addBotWrap">
+            <div class="bot-diff-inline">
+              <span class="bot-diff-label" data-i18n="lobby.botDifficulty">Dificuldade:</span>
+              <div class="diff-btns diff-btns-sm" id="botDiffBtns">
+                <button class="diff-btn" data-diff="1" data-i18n="index.easy">FÁCIL</button>
+                <button class="diff-btn active" data-diff="2" data-i18n="index.medium">MÉDIO</button>
+                <button class="diff-btn" data-diff="3" data-i18n="index.hard">DIFÍCIL</button>
+              </div>
+            </div>
+            <button class="add-bot-btn" id="addBotBtn" data-i18n="lobby.addBot">+ ADICIONAR BOT</button>
+          </div>
+        </section>
+
+        <!-- CONFIG (host only) -->
+        <section class="lob-panel" id="configPanel">
+          <div class="panel-title" style="margin-bottom:14px" data-i18n="lobby.config">CONFIGURAÇÕES</div>
+          <div class="field-group" style="margin-bottom:0">
+            <label style="font-size:9px" data-i18n="lobby.gameMode">MODO DE JOGO</label>
+            <div class="mode-grid mode-grid-sm" id="configModeGrid">
+              <button class="mode-btn active" data-mode="ffa"><span class="mode-name" style="font-size:7px">FREE FOR ALL</span></button>
+              <button class="mode-btn" data-mode="1v1"><span class="mode-name" style="font-size:7px">1v1</span></button>
+              <button class="mode-btn" data-mode="2v2"><span class="mode-name" style="font-size:7px">2v2</span></button>
+              <button class="mode-btn" data-mode="3v3"><span class="mode-name" style="font-size:7px">3v3</span></button>
+              <button class="mode-btn" data-mode="2v2v2"><span class="mode-name" style="font-size:7px">2v2v2</span></button>
+            </div>
+          </div>
+        </section>
+
+        <!-- START (host only) -->
+        <button class="start-btn" id="startBtn" style="display:none" data-i18n="lobby.startGame">▶ INICIAR PARTIDA</button>
+
+        <!-- WAITING (non-host) -->
+        <div class="waiting-msg" id="waitingMsg" style="display:none">
+          <span class="waiting-dot"></span>
+          <span data-i18n="lobby.waitingHost">Aguardando o host iniciar...</span>
+        </div>
+      </div>
+
+      <!-- RIGHT: slots + chat -->
+      <div class="lobby-right">
+
+        <!-- SLOTS / TEAMS -->
+        <section class="lob-panel lob-slots-panel">
+          <div class="panel-title" style="margin-bottom:12px" data-i18n="lobby.chooseSlot">ESCOLHA SEU LUGAR</div>
+          <div class="slots-grid" id="slotsGrid"></div>
+          <div class="slots-hint" data-i18n="lobby.slotHint">Clique num slot vazio para ocupá-lo. Quem não escolher será alocado automaticamente.</div>
+        </section>
+
+        <!-- CHAT -->
+        <section class="lob-panel lob-chat-panel">
+          <div class="panel-title" style="margin-bottom:12px" data-i18n="lobby.chat">CHAT DA SALA</div>
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="chat-input-wrap">
+            <input type="text" id="chatInput" maxlength="120" data-i18n-placeholder="lobby.chatPlaceholder" placeholder="Digite uma mensagem..." autocomplete="off" spellcheck="false">
+            <button class="chat-send-btn" id="chatSendBtn">➤</button>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <div class="copy-toast hidden" id="copyToast"></div>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/mock-server.js"></script>
+  <script src="js/config.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="js/socket-client.js"></script>
+  <script>
+    i18n.load().then(() => i18n.applyToDOM());
+    // ===== STATE =====
+    const lobbyData = JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}');
+    if (!lobbyData.code) { window.location.href = 'index.html'; }
+
+    const { code, isHost, playerName, mode: initMode, botDifficulty: initDiff } = lobbyData;
+
+    let currentRoom  = null;
+    let selectedDiff = initDiff || 2;
+    let selectedMode = initMode || 'ffa';
+
+    // slots[slotIndex] = { playerId, playerName, isBot } or null
+    let slots = [];
+
+    // ===== SLOT STRUCTURE PER MODE =====
+    const MODE_SLOTS = {
+      ffa:   { total:6, teams:[ {label:'',color:'#7c4dff',size:6} ] },
+      '1v1': { total:2, teams:[ {label:'TIME A',color:'#2979ff',size:1}, {label:'TIME B',color:'#ff1744',size:1} ] },
+      '2v2': { total:4, teams:[ {label:'TIME A',color:'#2979ff',size:2}, {label:'TIME B',color:'#ff1744',size:2} ] },
+      '3v3': { total:6, teams:[ {label:'TIME A',color:'#2979ff',size:3}, {label:'TIME B',color:'#ff1744',size:3} ] },
+      '2v2v2':{ total:6, teams:[ {label:'TIME A',color:'#2979ff',size:2}, {label:'TIME B',color:'#ff1744',size:2}, {label:'TIME C',color:'#00e676',size:2} ] },
+    };
+
+    function initSlots(mode) {
+      const cfg = MODE_SLOTS[mode] || MODE_SLOTS.ffa;
+      slots = Array(cfg.total).fill(null);
+    }
+
+    function slotTeamOf(slotIdx, mode) {
+      const cfg = MODE_SLOTS[mode] || MODE_SLOTS.ffa;
+      let offset = 0;
+      for (let t = 0; t < cfg.teams.length; t++) {
+        if (slotIdx < offset + cfg.teams[t].size) return t;
+        offset += cfg.teams[t].size;
+      }
+      return 0;
+    }
+
+    // ===== RENDER SLOTS =====
+    function renderSlots() {
+      const grid = document.getElementById('slotsGrid');
+      grid.innerHTML = '';
+      const cfg  = MODE_SLOTS[selectedMode] || MODE_SLOTS.ffa;
+      const isFfa = selectedMode === 'ffa';
+      let slotIdx = 0;
+
+      cfg.teams.forEach((team, teamIdx) => {
+        const teamWrap = document.createElement('div');
+        teamWrap.className = 'slots-team';
+
+        if (!isFfa) {
+          const label = document.createElement('div');
+          label.className = 'slots-team-label';
+          label.textContent = team.label;
+          label.style.color = team.color;
+          label.style.borderColor = team.color + '44';
+          teamWrap.appendChild(label);
+        }
+
+        const teamSlots = document.createElement('div');
+        teamSlots.className = 'slots-team-slots';
+
+        for (let s = 0; s < team.size; s++) {
+          const idx     = slotIdx;
+          const occupant = slots[idx];
+          const isMe    = occupant && occupant.playerId === server.playerId;
+          const mySlot  = slots.findIndex(sl => sl && sl.playerId === server.playerId);
+          const isEmpty = !occupant;
+
+          const slot = document.createElement('div');
+          slot.className = 'slot-card'
+            + (isEmpty ? ' slot-empty' : '')
+            + (isMe ? ' slot-me' : '')
+            + (occupant?.isBot ? ' slot-bot' : '');
+          slot.style.setProperty('--tc', team.color);
+
+          if (occupant) {
+            slot.innerHTML = `
+              <span class="slot-icon">${occupant.isBot ? '🤖' : '👤'}</span>
+              <span class="slot-name">${occupant.playerName}</span>
+              ${isMe ? `<span class="slot-you">${i18n.t('lobby.you').toUpperCase()}</span>` : ''}
+            `;
+          } else {
+            slot.innerHTML = `
+              <span class="slot-icon">+</span>
+              <span class="slot-name slot-empty-text">${i18n.t('lobby.emptySlot')}</span>
+            `;
+            // Clickable if player not yet in any slot
+            if (mySlot === -1) {
+              slot.classList.add('slot-clickable');
+              slot.addEventListener('click', () => occupySlot(idx));
+            }
+          }
+
+          // Player can click their own slot to vacate
+          if (isMe) {
+            slot.style.cursor = 'pointer';
+            slot.title = 'Clique para sair do slot';
+            slot.addEventListener('click', () => vacateSlot(idx));
+          }
+
+          teamSlots.appendChild(slot);
+          slotIdx++;
+        }
+
+        teamWrap.appendChild(teamSlots);
+        grid.appendChild(teamWrap);
+      });
+    }
+
+    function occupySlot(idx) {
+      const mySlot = slots.findIndex(sl => sl && sl.playerId === server.playerId);
+      if (mySlot !== -1) slots[mySlot] = null; // leave old slot
+      slots[idx] = { playerId: server.playerId, playerName, isBot: false };
+      renderSlots();
+    }
+
+    function vacateSlot(idx) {
+      slots[idx] = null;
+      renderSlots();
+    }
+
+    function assignBotToFirstEmpty(bot) {
+      const idx = slots.findIndex(s => s === null);
+      if (idx !== -1) {
+        slots[idx] = { playerId: bot.id, playerName: bot.name, isBot: true };
+      }
+      // If no slot available, bot becomes spectator (not placed)
+    }
+
+    function removeBotFromSlots(botId) {
+      const idx = slots.findIndex(s => s && s.playerId === botId);
+      if (idx !== -1) slots[idx] = null;
+    }
+
+    // Randomize unassigned players into empty slots (real players first, bots last)
+    function finalizeSlots(players) {
+      const assigned  = new Set(slots.filter(Boolean).map(s => s.playerId));
+      const unassignedReal = players.filter(p => !p.isBot && !assigned.has(p.id));
+      const unassignedBots = players.filter(p =>  p.isBot && !assigned.has(p.id));
+      const unassigned = [...unassignedReal, ...unassignedBots];
+
+      // Shuffle within each group
+      const shuffle = arr => { for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; };
+      shuffle(unassignedReal);
+      shuffle(unassignedBots);
+
+      unassigned.forEach(p => {
+        const emptyIdx = slots.findIndex(s => s === null);
+        if (emptyIdx !== -1) {
+          slots[emptyIdx] = { playerId: p.id, playerName: p.name, isBot: p.isBot };
+        }
+        // else: spectator (no slot available)
+      });
+    }
+
+    // ===== RENDER PLAYERS LIST =====
+    function renderPlayers(room) {
+      const list  = document.getElementById('playersList');
+      const maxP  = MODE_SLOTS[room.mode]?.total || 6;
+      const count = room.players.length;
+      document.getElementById('playersCount').textContent = `${count} / ${maxP}`;
+      list.innerHTML = '';
+
+      room.players.forEach(p => {
+        const isMe = p.id === server.playerId;
+        const row  = document.createElement('div');
+        row.className = 'player-row'
+          + (p.isBot ? ' player-row-bot' : '')
+          + (isMe    ? ' player-row-me'  : '');
+
+        const left = document.createElement('div');
+        left.className = 'player-row-left';
+
+        const icon = document.createElement('span');
+        icon.className = 'player-icon';
+        icon.textContent = p.isBot ? '🤖' : (p.isHost ? '👑' : '👤');
+
+        const name = document.createElement('span');
+        name.className = 'player-name';
+        name.textContent = p.name + (isMe ? ' (você)' : '') + (p.isHost ? ' [HOST]' : '');
+
+        left.appendChild(icon);
+        left.appendChild(name);
+        row.appendChild(left);
+
+        if (isHost && p.isBot) {
+          const rm = document.createElement('button');
+          rm.className = 'remove-bot-btn';
+          rm.textContent = '✕';
+          rm.addEventListener('click', () => {
+            removeBotFromSlots(p.id);
+            server.removeBot({ botId: p.id });
+          });
+          row.appendChild(rm);
+        }
+
+        list.appendChild(row);
+      });
+
+      // Empty slots
+      for (let i = count; i < maxP; i++) {
+        const row = document.createElement('div');
+        row.className = 'player-row player-row-empty';
+        row.innerHTML = `<span class="player-icon">○</span><span class="player-name" style="opacity:0.3">${i18n.t('lobby.waitingPlayer')}</span>`;
+        list.appendChild(row);
+      }
+    }
+
+    // ===== CHAT =====
+    function addChatMessage(entry) {
+      const msgs   = document.getElementById('chatMessages');
+      const isSystem = entry.isSystem;
+      const isMe   = entry.playerId === server.playerId;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'chat-msg'
+        + (isSystem ? ' chat-msg-system' : '')
+        + (isMe     ? ' chat-msg-me'     : '');
+
+      if (!isSystem) {
+        const header = document.createElement('div');
+        header.className = 'chat-msg-header';
+        header.innerHTML = `<span class="chat-name" ${entry.isBot?'style="color:var(--text2)"':''}>
+          ${entry.isBot?'🤖 ':''}${entry.playerName}</span>
+          <span class="chat-time">${entry.time}</span>`;
+        wrap.appendChild(header);
+      }
+
+      const text = document.createElement('div');
+      text.className = 'chat-msg-text';
+      text.textContent = entry.message;
+      wrap.appendChild(text);
+      msgs.appendChild(wrap);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function addSystemMsg(message) {
+      addChatMessage({
+        isSystem: true, message,
+        time: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+      });
+    }
+
+    function sendChat() {
+      const input = document.getElementById('chatInput');
+      const msg   = input.value.trim();
+      if (!msg) return;
+      input.value = '';
+      server.sendChat({ message: msg, playerName });
+    }
+
+    document.getElementById('chatSendBtn').addEventListener('click', sendChat);
+    document.getElementById('chatInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendChat();
+    });
+
+    // ===== TOAST =====
+    function showToast(msg) {
+      const t = document.getElementById('copyToast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2000);
+    }
+
+    // ===== HEADER BUTTONS =====
+    document.getElementById('roomCodeDisplay').textContent = code;
+
+    document.getElementById('copyCodeBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText(code).then(() => showToast(i18n.t('ui.codeCopied')));
+    });
+
+    document.getElementById('shareLinkBtn').addEventListener('click', () => {
+      const base = window.location.href.replace('lobby.html','index.html').split('?')[0];
+      navigator.clipboard.writeText(base + '?sala=' + code).then(() => showToast(i18n.t('ui.linkCopied')));
+    });
+
+    document.getElementById('backBtn').addEventListener('click', () => {
+      server.leaveRoom();
+      window.location.href = 'index.html';
+    });
+
+    // ===== HOST CONTROLS =====
+    if (isHost) {
+      document.getElementById('startBtn').style.display  = 'block';
+      document.getElementById('addBotWrap').style.display = 'flex';
+      document.getElementById('configPanel').style.display = 'block';
+      document.getElementById('waitingMsg').style.display  = 'none';
+    } else {
+      document.getElementById('addBotWrap').style.display  = 'none';
+      document.getElementById('configPanel').style.display = 'none';
+      document.getElementById('startBtn').style.display    = 'none';
+      document.getElementById('waitingMsg').style.display  = 'flex';
+    }
+
+    // Bot difficulty buttons
+    document.querySelectorAll('#botDiffBtns .diff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#botDiffBtns .diff-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedDiff = parseInt(btn.dataset.diff);
+      });
+    });
+
+    // Mode change
+    document.querySelectorAll('#configModeGrid .mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#configModeGrid .mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedMode = btn.dataset.mode;
+
+        // Remove all bots before switching mode
+        if (currentRoom) {
+          const bots = currentRoom.players.filter(p => p.isBot);
+          bots.forEach(bot => {
+            removeBotFromSlots(bot.id);
+            server.removeBot({ botId: bot.id });
+          });
+          currentRoom.players = currentRoom.players.filter(p => !p.isBot);
+          if (bots.length > 0) {
+            addSystemMsg(i18n.t('lobby.botsRemovedOnModeChange'));
+          }
+        }
+
+        initSlots(selectedMode);
+        renderSlots();
+        addSystemMsg(i18n.t('lobby.modeChanged', { mode: selectedMode.toUpperCase() }));
+        server.updateRoomConfig({ mode: selectedMode, botDifficulty: selectedDiff });
+      });
+    });
+
+    // Sync initial mode active state
+    document.querySelectorAll('#configModeGrid .mode-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === selectedMode);
+    });
+
+    // Add bot button
+    document.getElementById('addBotBtn').addEventListener('click', () => {
+      server.addBot({ difficulty: selectedDiff });
+    });
+
+    // Start game
+    document.getElementById('startBtn').addEventListener('click', () => {
+      if (!currentRoom) return;
+      finalizeSlots(currentRoom.players);
+
+      // Build ordered player list from slots + spectators
+      const slotPlayers = slots
+        .filter(Boolean)
+        .map(s => currentRoom.players.find(p => p.id === s.playerId))
+        .filter(Boolean);
+
+      const config = {
+        playerName,
+        mode: selectedMode,
+        botCount: currentRoom.players.filter(p => p.isBot).length,
+        botDifficulty: selectedDiff,
+        roomCode: code,
+        players: slotPlayers,
+        slots,
+      };
+
+      if (socketClient) {
+        // Online: server sends game_starting to every player (including self)
+        socketClient.startGame(slots);
+      } else {
+        sessionStorage.setItem('gameConfig', JSON.stringify(config));
+        window.location.href = 'game.html';
+      }
+    });
+
+    // ===== MOCK SERVER EVENTS =====
+    server.on('room_updated', ({ room }) => {
+      currentRoom = room;
+      renderPlayers(room);
+      renderSlots();
+    });
+
+    server.on('player_joined', ({ player }) => {
+      if (!currentRoom) return;
+      if (!currentRoom.players.find(p => p.id === player.id)) {
+        currentRoom.players.push(player);
+      }
+      if (player.isBot) assignBotToFirstEmpty(player);
+      renderPlayers(currentRoom);
+      renderSlots();
+      addSystemMsg((player.isBot ? '🤖 ' : '') + i18n.t('lobby.playerJoined', { name: player.name }));
+    });
+
+    server.on('player_left', ({ playerId }) => {
+      if (!currentRoom) return;
+      const leaving = currentRoom.players.find(p => p.id === playerId);
+      currentRoom.players = currentRoom.players.filter(p => p.id !== playerId);
+      removeBotFromSlots(playerId);
+      renderPlayers(currentRoom);
+      renderSlots();
+      if (leaving) addSystemMsg(i18n.t('lobby.playerLeft', { name: leaving.name }));
+    });
+
+    server.on('chat_message', entry => addChatMessage(entry));
+    server.on('error_msg', ({ message }) => addSystemMsg('⚠ ' + message));
+
+    server.on('game_starting', ({ config }) => {
+      sessionStorage.setItem('gameConfig', JSON.stringify(config));
+      window.location.href = 'game.html';
+    });
+
+    // ===== INIT =====
+    i18n.load().then(() => {
+      i18n.applyToDOM();
+
+      // In mock mode, load room from storage; in online mode, we get it via room_joined event
+      const room = (server._safeRoom ? server._safeRoom(code) : null);
+      if (!room && !socketClient) {
+        addSystemMsg('⚠ ' + i18n.t('lobby.roomNotFound'));
+        setTimeout(() => window.location.href = 'index.html', 2000);
+        return;
+      }
+
+      currentRoom  = room || { code, mode: initMode || 'ffa', botDifficulty: initDiff || 2, players: [], host: null };
+      selectedMode = room.mode || 'ffa';
+      initSlots(selectedMode);
+
+      room.players.filter(p => p.isBot).forEach(b => assignBotToFirstEmpty(b));
+
+      renderPlayers(room);
+      renderSlots();
+
+      const winnerMsg = sessionStorage.getItem('tetrinet_lobby_msg');
+      if (winnerMsg) {
+        sessionStorage.removeItem('tetrinet_lobby_msg');
+        addSystemMsg(winnerMsg);
+      } else if (room.chat?.length > 0) {
+        room.chat.forEach(e => addChatMessage(e));
+      } else {
+        addSystemMsg(i18n.t('lobby.youJoined', { code, name: playerName }));
+      }
+
+      document.querySelectorAll('#configModeGrid .mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === selectedMode);
+      });
+    });
+  </script>
+</body>
+</html>

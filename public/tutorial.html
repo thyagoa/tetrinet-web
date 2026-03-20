@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TetriNET — Tutorial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="entry-page">
+  <div class="scanlines"></div>
+
+  <div class="entry-container" style="max-width:760px">
+    <header class="lobby-header" style="margin-bottom:24px">
+      <div class="logo-wrap">
+        <h1 class="logo" style="font-size:28px">TETRI<span>NET</span></h1>
+        <p class="logo-sub" data-i18n="ui.edition">BROWSER EDITION (v0.14b)</p>
+      </div>
+    </header>
+
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- TITLE -->
+      <section class="entry-panel">
+        <h2 class="panel-title" data-i18n="tutorial.title">COMO JOGAR</h2>
+        <p class="tutorial-text" data-i18n="tutorial.intro">
+          TetriNET é um Tetris multiplayer com bombas especiais. Elimine seus oponentes limpando linhas e usando bombas contra eles!
+        </p>
+      </section>
+
+      <!-- MECÂNICAS BÁSICAS -->
+      <section class="entry-panel">
+        <h2 class="panel-title" data-i18n="tutorial.mechanics">MECÂNICAS BÁSICAS</h2>
+        <p class="tutorial-text" data-i18n="tutorial.mechanicsText">
+          Encaixe peças para formar linhas horizontais completas. Cada linha eliminada gera pontos e pode capturar bombas especiais. Quando seu campo encher, você é eliminado.
+        </p>
+      </section>
+
+      <!-- BOMBAS ESPECIAIS -->
+      <section class="entry-panel">
+        <h2 class="panel-title" data-i18n="tutorial.specials">BOMBAS ESPECIAIS</h2>
+        <p class="tutorial-text" data-i18n="tutorial.specialsText">
+          Ao limpar linhas, você captura bombas do inventário do alvo. Use bombas para atacar oponentes ou se defender. Selecione um alvo com as teclas de alvo antes de usar.
+        </p>
+        <div class="tutorial-specials-grid" id="specialsGrid"></div>
+      </section>
+
+      <!-- SELEÇÃO DE ALVO -->
+      <section class="entry-panel">
+        <h2 class="panel-title" data-i18n="tutorial.targeting">SELEÇÃO DE ALVO</h2>
+        <p class="tutorial-text" data-i18n="tutorial.targetingText">
+          Pressione as teclas de alvo (padrão: Q/W/E/A/S/D) para selecionar qual jogador receberá sua próxima bomba. Aliados são exibidos em verde — evite atacá-los!
+        </p>
+      </section>
+
+      <!-- MODOS DE JOGO -->
+      <section class="entry-panel">
+        <h2 class="panel-title" data-i18n="tutorial.modes">MODOS DE JOGO</h2>
+        <p class="tutorial-text" data-i18n="tutorial.modesText">
+          Escolha o modo ao criar a sala. Em modos de equipe, você e seus aliados compartilham a vitória. Bots preenchem slots vazios automaticamente.
+        </p>
+        <div class="tutorial-modes-grid" id="modesGrid"></div>
+      </section>
+
+      <!-- CONTROLES -->
+      <section class="entry-panel">
+        <h2 class="panel-title" data-i18n="tutorial.controls">CONTROLES</h2>
+        <p class="tutorial-text" data-i18n="tutorial.controlsText">
+          Personalize todas as teclas em Configurações. Os controles abaixo refletem seu mapeamento atual.
+        </p>
+        <div class="controls-grid" id="controlsGrid" style="margin-top:12px"></div>
+      </section>
+
+      <!-- BACK -->
+      <a href="index.html" class="start-btn" style="text-decoration:none;text-align:center;display:block" data-i18n="tutorial.back">← VOLTAR AO MENU</a>
+
+    </div>
+  </div>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/keybinds.js"></script>
+  <script>
+    i18n.load().then(() => {
+      i18n.applyToDOM();
+      buildSpecials();
+      buildModes();
+      buildControls();
+    });
+
+    const SPECIAL_KEYS = ['a','c','b','r','o','q','g','s','n'];
+
+    function buildSpecials() {
+      const grid = document.getElementById('specialsGrid');
+      SPECIAL_KEYS.forEach(key => {
+        const item = document.createElement('div');
+        item.className = 'tutorial-special-item';
+        item.innerHTML = `
+          <span class="tutorial-sp-key">${key.toUpperCase()}</span>
+          <div class="tutorial-sp-info">
+            <span class="tutorial-sp-name">${i18n.specialName(key)}</span>
+            <span class="tutorial-sp-desc">${i18n.specialDesc(key)}</span>
+          </div>
+        `;
+        grid.appendChild(item);
+      });
+    }
+
+    const MODES = [
+      { key: 'ffa',   icon: '⚔' },
+      { key: '1v1',   icon: '🤺' },
+      { key: '2v2',   icon: '🛡' },
+      { key: '3v3',   icon: '⚡' },
+      { key: '2v2v2', icon: '🔱' },
+    ];
+
+    function buildModes() {
+      const grid = document.getElementById('modesGrid');
+      MODES.forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'tutorial-mode-item';
+        item.innerHTML = `
+          <span class="tutorial-mode-name">${m.icon} ${i18n.t('modes.' + m.key + '.name')}</span>
+          <span class="tutorial-mode-desc">${i18n.t('modes.' + m.key + '.desc')}</span>
+        `;
+        grid.appendChild(item);
+      });
+    }
+
+    const CONTROL_ACTIONS = [
+      'moveLeft','moveRight','rotate','softDrop','hardDrop',
+      'target1','target2','target3','target4','target5','target6',
+      'useBomb','discardBomb',
+    ];
+
+    function buildControls() {
+      const grid = document.getElementById('controlsGrid');
+      CONTROL_ACTIONS.forEach(action => {
+        const item = document.createElement('div');
+        item.className = 'ctrl-item';
+        const keyEl = document.createElement('span');
+        keyEl.className = 'ctrl-key';
+        keyEl.textContent = keyDisplayName(keybinds[action] || '');
+        const labelEl = document.createElement('span');
+        labelEl.textContent = i18n.t('controls.' + action);
+        item.appendChild(keyEl);
+        item.appendChild(labelEl);
+        grid.appendChild(item);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TetriNET — Configurações</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="entry-page">
+  <div class="scanlines"></div>
+
+  <div class="entry-container" style="max-width:700px">
+    <header class="lobby-header" style="margin-bottom:24px">
+      <div class="logo-wrap">
+        <h1 class="logo" style="font-size:28px">TETRI<span>NET</span></h1>
+        <p class="logo-sub" data-i18n="ui.edition">BROWSER EDITION (v0.14b)</p>
+      </div>
+    </header>
+
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- LANGUAGE -->
+      <section class="entry-panel">
+        <h2 class="panel-title" data-i18n="settings.language">IDIOMA</h2>
+        <div class="settings-row">
+          <span class="settings-label" data-i18n="settings.languageLabel">Idioma do jogo</span>
+          <div class="lang-btns" id="langBtns">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- KEYBINDS -->
+      <section class="entry-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <h2 class="panel-title" style="margin:0;border:none;padding:0">CONTROLES</h2>
+          <button class="reset-binds-btn" id="resetBindsBtn">↺ RESTAURAR PADRÃO</button>
+        </div>
+
+        <div class="keybinds-grid" id="keybindsGrid"></div>
+
+        <!-- Conflict warning -->
+        <div class="bind-conflict hidden" id="bindConflict"></div>
+      </section>
+
+      <!-- BACK BUTTON -->
+      <a href="index.html" class="start-btn" style="text-decoration:none;text-align:center;display:block" data-i18n="ui.back">← VOLTAR</a>
+
+    </div>
+  </div>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/keybinds.js"></script>
+  <script>
+    // Load i18n first, then build UI
+    i18n.load().then(() => {
+      i18n.applyToDOM();
+      buildLangButtons();
+      buildGrid();
+    });
+
+    let currentBinds = loadKeybinds();
+    let listeningFor = null;
+
+    // ===== LANGUAGE BUTTONS =====
+    function buildLangButtons() {
+      const wrap    = document.getElementById('langBtns');
+      const locales = i18n.availableLocales();
+      wrap.innerHTML = '';
+
+      locales.forEach(loc => {
+        const btn = document.createElement('button');
+        btn.className = 'lang-btn' + (loc.code === i18n.currentCode ? ' active' : '');
+        btn.dataset.lang = loc.code;
+        btn.textContent  = `${loc.flag} ${loc.name}`;
+        btn.addEventListener('click', async () => {
+          await i18n.setLanguage(loc.code);
+          buildLangButtons();
+          buildGrid();
+        });
+        wrap.appendChild(btn);
+      });
+
+      // No hardcoded future languages — available locales are auto-discovered via manifest.json
+    }
+
+    // ===== BUILD KEYBIND ROWS =====
+    function buildGrid() {
+      const grid = document.getElementById('keybindsGrid');
+      grid.innerHTML = '';
+
+      const groups = [
+        { key: 'settings.movement', actions: ['moveLeft','moveRight','rotate','softDrop','hardDrop'] },
+        { key: 'settings.targets',  actions: ['target1','target2','target3','target4','target5','target6'] },
+        { key: 'settings.bombs',    actions: ['useBomb','discardBomb'] },
+      ];
+
+      groups.forEach(group => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'bind-group';
+
+        const groupLabel = document.createElement('div');
+        groupLabel.className = 'bind-group-label';
+        groupLabel.textContent = i18n.t(group.key);
+        groupEl.appendChild(groupLabel);
+
+        group.actions.forEach(action => {
+          const row = document.createElement('div');
+          row.className = 'bind-row';
+
+          const label = document.createElement('span');
+          label.className = 'bind-action-label';
+          label.textContent = i18n.t(`controls.${action}`);
+
+          const btn = document.createElement('button');
+          btn.className   = 'bind-key-btn';
+          btn.id          = 'bind_' + action;
+          btn.textContent = keyDisplayName(currentBinds[action]);
+          btn.dataset.action = action;
+          btn.addEventListener('click', () => startListening(action, btn));
+
+          row.appendChild(label);
+          row.appendChild(btn);
+          groupEl.appendChild(row);
+        });
+
+        grid.appendChild(groupEl);
+      });
+
+      // Update static text
+      document.querySelector('.reset-binds-btn').textContent = i18n.t('settings.resetBinds');
+    }
+
+    // ===== LISTENING FOR KEY =====
+    function startListening(action, btn) {
+      if (listeningFor) cancelListening();
+      listeningFor = action;
+      btn.classList.add('bind-listening');
+      btn.textContent = i18n.t('settings.pressKey');
+      document.addEventListener('keydown', onKeyCapture);
+    }
+
+    function cancelListening() {
+      if (!listeningFor) return;
+      const btn = document.getElementById('bind_' + listeningFor);
+      if (btn) {
+        btn.classList.remove('bind-listening');
+        btn.textContent = keyDisplayName(currentBinds[listeningFor]);
+      }
+      listeningFor = null;
+      document.removeEventListener('keydown', onKeyCapture);
+    }
+
+    function onKeyCapture(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const key = e.code || e.key;
+
+      if (key === 'Escape') { cancelListening(); return; }
+
+      if (isForbiddenKey(key)) {
+        showConflict(i18n.t('settings.conflictKey'));
+        return;
+      }
+
+      const conflict = Object.entries(currentBinds).find(
+        ([act, k]) => k === key && act !== listeningFor
+      );
+
+      if (conflict) {
+        showConflict(i18n.t('settings.conflictAction', {
+          key:    keyDisplayName(key),
+          action: i18n.t(`controls.${conflict[0]}`),
+        }));
+        return;
+      }
+
+      currentBinds[listeningFor] = key;
+      saveKeybinds(currentBinds);
+      Object.assign(keybinds, currentBinds);
+
+      const btn = document.getElementById('bind_' + listeningFor);
+      if (btn) {
+        btn.classList.remove('bind-listening');
+        btn.textContent = keyDisplayName(key);
+      }
+
+      hideConflict();
+      listeningFor = null;
+      document.removeEventListener('keydown', onKeyCapture);
+    }
+
+    function showConflict(msg) {
+      const el = document.getElementById('bindConflict');
+      el.textContent = '⚠ ' + msg;
+      el.classList.remove('hidden');
+      setTimeout(hideConflict, 3500);
+    }
+
+    function hideConflict() {
+      document.getElementById('bindConflict').classList.add('hidden');
+    }
+
+    document.getElementById('resetBindsBtn').addEventListener('click', () => {
+      if (!confirm(i18n.t('settings.resetConfirm'))) return;
+      currentBinds = resetKeybinds();
+      Object.assign(keybinds, currentBinds);
+      buildGrid();
+      hideConflict();
+    });
+
+    document.addEventListener('click', e => {
+      if (listeningFor && !e.target.classList.contains('bind-key-btn')) {
+        cancelListening();
+      }
+    });
+  </script>
+</body>
+</html>

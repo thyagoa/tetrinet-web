@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where npm:*)",
+      "Bash(where node:*)",
+      "Bash(command -v npm)",
+      "Bash(powershell.exe -Command \"Get-Command node,npm,npx -ErrorAction SilentlyContinue | Select-Object Name,Source\")",
+      "WebSearch",
+      "Bash(gh --version)",
+      "Bash(git --version)",
+      "Bash(winget --version)",
+      "Bash(winget install:*)",
+      "Bash(gh auth:*)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth login --web --git-protocol https)"
+    ]
+  }
+}

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TetriNET</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="entry-page">
+  <div class="scanlines"></div>
+
+  <div class="entry-container">
+    <header class="lobby-header">
+      <div class="logo-wrap">
+        <h1 class="logo">TETRI<span>NET</span></h1>
+        <p class="logo-sub" data-i18n="ui.edition">BROWSER EDITION (v0.14b)</p>
+      </div>
+      <div class="logo-blocks">
+        <span class="lb lb-i">&nbsp;</span>
+        <span class="lb lb-o">&nbsp;</span>
+        <span class="lb lb-t">&nbsp;</span>
+        <span class="lb lb-l">&nbsp;</span>
+        <span class="lb lb-j">&nbsp;</span>
+        <span class="lb lb-s">&nbsp;</span>
+        <span class="lb lb-z">&nbsp;</span>
+      </div>
+    </header>
+
+    <main class="entry-main">
+      <div class="entry-name-wrap">
+        <label class="entry-label" for="playerName" data-i18n="ui.yourName">SEU NOME</label>
+        <input type="text" id="playerName" maxlength="16" placeholder="JOGADOR_1" autocomplete="off" spellcheck="false">
+        <a href="tutorial.html" class="tutorial-link" data-i18n="ui.tutorial">TUTORIAL</a>
+        <a href="settings.html" class="settings-link">⚙ <span data-i18n="ui.settings">CONFIGURAÇÕES</span></a>
+      </div>
+
+      <div class="entry-panels">
+        <!-- CREATE ROOM -->
+        <section class="entry-panel">
+          <h2 class="panel-title" data-i18n="ui.createRoom">CRIAR SALA</h2>
+
+          <div class="field-group">
+            <label data-i18n="lobby.gameMode">MODO DE JOGO</label>
+            <div class="mode-grid">
+              <button class="mode-btn active" data-mode="ffa">
+                <span class="mode-icon">⚔</span>
+                <span class="mode-name" data-i18n="modes.ffa.name">FREE FOR ALL</span>
+                <span class="mode-desc" data-i18n="modes.ffa.desc">Até 6 jogadores</span>
+              </button>
+              <button class="mode-btn" data-mode="1v1">
+                <span class="mode-icon">🤺</span>
+                <span class="mode-name" data-i18n="modes.1v1.name">1v1</span>
+                <span class="mode-desc" data-i18n="modes.1v1.desc">Duelo</span>
+              </button>
+              <button class="mode-btn" data-mode="2v2">
+                <span class="mode-icon">🛡</span>
+                <span class="mode-name" data-i18n="modes.2v2.name">2v2</span>
+                <span class="mode-desc" data-i18n="modes.2v2.desc">2 Times</span>
+              </button>
+              <button class="mode-btn" data-mode="3v3">
+                <span class="mode-icon">⚡</span>
+                <span class="mode-name" data-i18n="modes.3v3.name">3v3</span>
+                <span class="mode-desc" data-i18n="modes.3v3.desc">2 Times</span>
+              </button>
+              <button class="mode-btn" data-mode="2v2v2">
+                <span class="mode-icon">🔱</span>
+                <span class="mode-name" data-i18n="modes.2v2v2.name">2v2v2</span>
+                <span class="mode-desc" data-i18n="modes.2v2v2.desc">3 Times</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label data-i18n="lobby.botDifficulty">DIFICULDADE DOS BOTS</label>
+            <div class="diff-btns">
+              <button class="diff-btn" data-diff="1">FÁCIL</button>
+              <button class="diff-btn active" data-diff="2">MÉDIO</button>
+              <button class="diff-btn" data-diff="3">DIFÍCIL</button>
+            </div>
+          </div>
+
+          <button class="start-btn" id="createBtn" data-i18n="ui.createRoom">▶ CRIAR SALA</button>
+        </section>
+
+        <!-- JOIN ROOM -->
+        <section class="entry-panel entry-panel-join">
+          <h2 class="panel-title" data-i18n="ui.joinRoom">ENTRAR EM SALA</h2>
+
+          <div class="field-group">
+            <label for="roomCode" data-i18n="ui.roomCode">CÓDIGO DA SALA</label>
+            <input type="text" id="roomCode" maxlength="6" placeholder="XKQT42"
+              autocomplete="off" spellcheck="false"
+              style="text-transform:uppercase;letter-spacing:6px;font-size:20px;text-align:center">
+          </div>
+
+          <button class="start-btn join-btn" id="joinBtn" data-i18n="ui.enterRoom">→ ENTRAR NA SALA</button>
+
+          <div class="entry-divider"></div>
+
+          <div class="entry-info">
+            <h3 class="panel-title" style="font-size:9px" data-i18n="ui.howItWorks">COMO FUNCIONA</h3>
+            <p class="entry-info-text" data-i18n="ui.howItWorksText1">Crie uma sala e compartilhe o código de 6 letras com seus amigos. Eles entram digitando o código aqui.</p>
+            <p class="entry-info-text" data-i18n="ui.howItWorksText2">Você pode adicionar bots no lobby para preencher os slots vazios ou substituir jogadores que caírem.</p>
+          </div>
+
+          <div class="entry-divider"></div>
+
+          <h3 class="panel-title" style="font-size:9px;margin-bottom:12px" data-i18n="ui.controls">CONTROLES</h3>
+          <div class="controls-grid" id="controlsList"></div>
+        </section>
+      </div>
+
+      <div class="entry-error hidden" id="entryError"></div>
+    </main>
+  </div>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/narrator.js"></script>
+  <script src="js/keybinds.js"></script>
+  <script src="js/mock-server.js"></script>
+  <script src="js/config.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="js/socket-client.js"></script>
+  <script>
+    i18n.load().then(() => {
+      i18n.applyToDOM();
+      buildControlsList();
+    });
+
+    // Build dynamic controls list from current keybinds
+    function buildControlsList() {
+      const grid = document.getElementById('controlsList');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      const actions = [
+        'moveLeft', 'moveRight', 'rotate', 'softDrop', 'hardDrop',
+        'target1', 'target2', 'target3', 'target4', 'target5', 'target6',
+        'useBomb', 'discardBomb',
+      ];
+
+      actions.forEach(action => {
+        const item = document.createElement('div');
+        item.className = 'ctrl-item';
+        const keyEl = document.createElement('span');
+        keyEl.className = 'ctrl-key';
+        keyEl.textContent = keyDisplayName(keybinds[action] || '');
+        const labelEl = document.createElement('span');
+        labelEl.textContent = i18n.t('controls.' + action);
+        item.appendChild(keyEl);
+        item.appendChild(labelEl);
+        grid.appendChild(item);
+      });
+    }
+
+    const nameInput = document.getElementById('playerName');
+    const saved = localStorage.getItem('tetrinet_player_name');
+    if (saved) nameInput.value = saved;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlRoom = urlParams.get('sala');
+    if (urlRoom) document.getElementById('roomCode').value = urlRoom.toUpperCase();
+
+    let selectedMode = 'ffa';
+    let selectedDiff = 2;
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedMode = btn.dataset.mode;
+      });
+    });
+
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedDiff = parseInt(btn.dataset.diff);
+      });
+    });
+
+    function getPlayerName() {
+      return (nameInput.value.trim() || 'JOGADOR_1').toUpperCase().slice(0,16);
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('entryError');
+      el.textContent = '⚠ ' + msg;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    server.on('room_created', ({ code }) => {
+      const name = getPlayerName();
+      localStorage.setItem('tetrinet_player_name', name);
+      sessionStorage.setItem('tetrinet_lobby', JSON.stringify({
+        code, isHost: true, playerName: name,
+        mode: selectedMode, botDifficulty: selectedDiff,
+      }));
+      window.location.href = 'lobby.html';
+    });
+
+    server.on('room_joined', ({ code }) => {
+      const name = getPlayerName();
+      localStorage.setItem('tetrinet_player_name', name);
+      sessionStorage.setItem('tetrinet_lobby', JSON.stringify({
+        code, isHost: false, playerName: name,
+      }));
+      window.location.href = 'lobby.html';
+    });
+
+    server.on('error_msg', ({ message }) => showError(message));
+
+    document.getElementById('createBtn').addEventListener('click', () => {
+      const name = getPlayerName();
+      if (!name) { showError(i18n.t('errors.enterName')); return; }
+      server.createRoom({ playerName: name, mode: selectedMode, botDifficulty: selectedDiff });
+    });
+
+    document.getElementById('joinBtn').addEventListener('click', () => {
+      const name = getPlayerName();
+      const code = document.getElementById('roomCode').value.trim().toUpperCase();
+      if (!name) { showError(i18n.t('errors.enterName')); return; }
+      if (code.length !== 6) { showError(i18n.t('errors.codeLength')); return; }
+      server.joinRoom({ code, playerName: name });
+    });
+
+    document.getElementById('roomCode').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('joinBtn').click();
+    });
+
+    document.getElementById('roomCode').addEventListener('input', e => {
+      e.target.value = e.target.value.toUpperCase();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TetriNET — Partida</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="game-page">
+  <div class="scanlines"></div>
+
+  <header class="game-header">
+    <span class="game-logo">TETRI<span style="color:var(--accent2)">NET</span></span>
+    <span class="game-mode-label" id="modeLabel">FREE FOR ALL</span>
+    <span class="game-timer" id="gameTimer">00:00</span>
+    <button class="sfx-toggle" id="sfxToggle" title="Som (M)">🔊</button>
+  </header>
+
+  <!-- Left HUD -->
+  <aside class="hud-left">
+    <div class="hud-section">
+      <div class="hud-label" data-i18n="game.next">PRÓXIMA</div>
+      <canvas id="nextCanvas"></canvas>
+    </div>
+    <div class="hud-section">
+      <div class="hud-label" data-i18n="game.score">SCORE</div>
+      <div class="hud-value" id="scoreDisplay">0</div>
+    </div>
+    <div class="hud-section">
+      <div class="hud-label" data-i18n="game.lines">LINHAS</div>
+      <div class="hud-value lines" id="linesDisplay">0</div>
+    </div>
+    <div class="hud-section">
+      <div class="hud-label" data-i18n="game.level">NÍVEL</div>
+      <div class="hud-value level" id="levelDisplay">1</div>
+    </div>
+    <div class="hud-section hud-glossary">
+      <div class="hud-label" data-i18n="game.glossary">GLOSSÁRIO</div>
+      <div class="glossary-list" id="glossaryList"></div>
+    </div>
+  </aside>
+
+  <!-- Main Field -->
+  <main class="field-area">
+    <div class="field-inner">
+      <canvas id="gameCanvas"></canvas>
+      <div class="next-bomb-panel" id="nextBombPanel">
+        <span class="nb-label" data-i18n="game.nextBomb">PRÓXIMA BOMBA</span>
+        <span class="nb-key" id="nextBombKey">—</span>
+        <span class="nb-name" id="nextBombName" data-i18n="game.noBombs">Nenhuma</span>
+        <span class="nb-target" id="nextBombTarget"></span>
+      </div>
+    </div>
+    <div class="event-log" id="eventLog"></div>
+  </main>
+
+  <!-- Right HUD -->
+  <aside class="hud-right">
+    <div class="hud-section" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+      <div class="hud-label" data-i18n="game.players">JOGADORES</div>
+      <div class="players-panel" id="playersPanel"></div>
+    </div>
+    <div class="hud-section">
+      <div class="hud-label" data-i18n="game.bombs">BOMBAS</div>
+      <div class="specials-inventory" id="specialsInventory"></div>
+    </div>
+  </aside>
+
+  <!-- Countdown overlay -->
+  <div class="overlay" id="countdownOverlay">
+    <div class="overlay-sub" data-i18n="game.countdown">PARTIDA COMEÇA EM</div>
+    <div class="countdown-num" id="countdownNum">3</div>
+  </div>
+
+  <!-- Game over overlay -->
+  <div class="overlay hidden" id="gameOverOverlay">
+    <div class="overlay-title" id="gameOverTitle" data-i18n="game.gameOver">FIM DE JOGO</div>
+    <div class="overlay-winner" id="winnerText"></div>
+    <div class="overlay-sub" id="winnerSub" style="margin-top:4px"></div>
+
+    <!-- Scoreboard -->
+    <div class="scoreboard" id="scoreboard">
+      <table class="scoreboard-table">
+        <thead>
+          <tr>
+            <th data-i18n="game.sbRank">#</th>
+            <th data-i18n="game.sbPlayer">JOGADOR</th>
+            <th data-i18n="game.sbScore">SCORE</th>
+            <th data-i18n="game.sbLines">LINHAS</th>
+            <th data-i18n="game.sbLevel">NÍVEL</th>
+          </tr>
+        </thead>
+        <tbody id="scoreboardBody"></tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;justify-content:center">
+      <button class="overlay-btn" id="restartBtn" data-i18n="game.playAgain">▶ JOGAR NOVAMENTE</button>
+      <button class="overlay-btn secondary" id="lobbyBtn" data-i18n="game.backLobby">⬅ VOLTAR AO LOBBY</button>
+      <button class="overlay-btn secondary" id="menuBtn" data-i18n="game.mainMenu">✕ MENU PRINCIPAL</button>
+    </div>
+  </div>
+
+  <!-- Dead overlay -->
+  <div class="overlay hidden" id="deadOverlay">
+    <div class="overlay-title" style="color:var(--danger)" data-i18n="game.youDied">VOCÊ MORREU</div>
+    <div class="overlay-sub" data-i18n="game.waitingEnd">Aguardando fim da partida...</div>
+    <div style="display:flex;gap:12px;margin-top:20px">
+      <button class="overlay-btn" id="watchBtn" data-i18n="game.watch">👁 ASSISTIR</button>
+      <button class="overlay-btn secondary" id="leaveBtn" data-i18n="game.leaveMatch">✕ SAIR</button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/i18n.js"></script>
+  <script src="js/narrator.js"></script>
+  <script src="js/keybinds.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/bot.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/sounds.js"></script>
+  <script src="js/config.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="js/socket-client.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
