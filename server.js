@@ -349,6 +349,8 @@ io.on('connection', socket => {
     }
 
     // Allow restarting the game after everyone returns to lobby
+    // Clear all slots so everyone can choose fresh
+    if (room.started) room.slots = [];
     room.started = false;
 
     socket.join(code);

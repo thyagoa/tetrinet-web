@@ -15,7 +15,7 @@
     <header class="lobby-header" style="margin-bottom:24px">
       <div class="logo-wrap">
         <h1 class="logo" style="font-size:28px">TETRI<span>NET</span></h1>
-        <p class="logo-sub" data-i18n="ui.edition">BROWSER EDITION (v0.15b)</p>
+        <p class="logo-sub" data-i18n="ui.edition">BROWSER EDITION (v0.16b)</p>
       </div>
     </header>
 
@@ -27,6 +27,17 @@
         <div class="settings-row">
           <span class="settings-label" data-i18n="settings.languageLabel">Idioma do jogo</span>
           <div class="lang-btns" id="langBtns">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- BOMB THEME -->
+      <section class="entry-panel" id="bombThemeSection">
+        <h2 class="panel-title" data-i18n="settings.bombTheme">TEMA DE BOMBAS</h2>
+        <div class="settings-row">
+          <span class="settings-label" data-i18n="settings.bombThemeLabel">Estilo de exibição das bombas</span>
+          <div class="lang-btns" id="bombThemeBtns">
             <!-- Populated by JS -->
           </div>
         </div>
@@ -53,16 +64,39 @@
 
   <script src="js/i18n.js"></script>
   <script src="js/keybinds.js"></script>
+  <script src="js/bomb-icons.js"></script>
   <script>
     // Load i18n first, then build UI
     i18n.load().then(() => {
       i18n.applyToDOM();
       buildLangButtons();
+      buildBombThemeButtons();
       buildGrid();
     });
 
     let currentBinds = loadKeybinds();
     let listeningFor = null;
+
+    // ===== BOMB THEME BUTTONS =====
+    function buildBombThemeButtons() {
+      const wrap = document.getElementById('bombThemeBtns');
+      wrap.innerHTML = '';
+      const themes = [
+        { code: 'letters', labelKey: 'settings.themeLetters' },
+        { code: 'icons',   labelKey: 'settings.themeIcons'   },
+      ];
+      const current = loadBombTheme();
+      themes.forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'lang-btn' + (t.code === current ? ' active' : '');
+        btn.textContent = i18n.t(t.labelKey);
+        btn.addEventListener('click', () => {
+          saveBombTheme(t.code);
+          buildBombThemeButtons();
+        });
+        wrap.appendChild(btn);
+      });
+    }
 
     // ===== LANGUAGE BUTTONS =====
     function buildLangButtons() {

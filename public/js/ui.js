@@ -220,16 +220,13 @@ function buildPlayersPanel() {
     card.appendChild(header);
     card.appendChild(cv);
     card.appendChild(stamp);
-    card.addEventListener('click', () => {
-      if (isSpectating && !isSelf) {
-        // Modo espectador: troca board principal para este player
+    if (isSpectating && !isSelf) {
+      card.addEventListener('click', () => {
         spectatorFocusId = p.id;
         Object.values(cardMap).forEach(c => c.el.classList.remove('spectator-focus'));
         cardMap[p.id]?.el.classList.add('spectator-focus');
-        return;
-      }
-      if (!isSelf) selectTarget(p.id);
-    });
+      });
+    }
 
     playersPanel.appendChild(card);
     cardMap[p.id] = { el: card, canvas: cv, bombCountEl };
@@ -243,6 +240,20 @@ function selectTarget(id) {
   });
   updateNextBombPanel();
 }
+
+function navigateTarget(dir) {
+  const list = allPlayers().filter(p => p.alive);
+  let idx = list.findIndex(p => p.id === selectedTarget);
+  if (idx === -1) idx = 0;
+  if (dir === 'next') idx = Math.min(idx + 1, list.length - 1);
+  else                idx = Math.max(idx - 1, 0);
+  selectTarget(list[idx].id);
+}
+
+// Botões de navegação de alvo
+document.getElementById('btnTargetSelf')?.addEventListener('click', () => selectTarget('player'));
+document.getElementById('btnTargetNext')?.addEventListener('click', () => navigateTarget('next'));
+document.getElementById('btnTargetPrev')?.addEventListener('click', () => navigateTarget('prev'));
 
 function updateBombCount(id) {
   const entry = cardMap[id];
@@ -273,7 +284,12 @@ function updateNextBombPanel() {
     return;
   }
 
-  keyEl.textContent  = sp.toUpperCase();
+  if (typeof bombTheme !== 'undefined' && bombTheme === 'icons') {
+    keyEl.innerHTML = '';
+    keyEl.appendChild(makeBombIconEl(sp, 22));
+  } else {
+    keyEl.textContent = sp.toUpperCase();
+  }
   keyEl.className    = 'nb-key';
   nameEl.textContent = i18n.specialName(sp);
   nameEl.className   = 'nb-name';
@@ -304,7 +320,11 @@ function renderInventory() {
     slot.className = 'inv-slot';
     if (inv[i]) {
       slot.classList.add('filled');
-      slot.textContent = inv[i].toUpperCase();
+      if (typeof bombTheme !== 'undefined' && bombTheme === 'icons') {
+        slot.appendChild(makeBombIconEl(inv[i], 18));
+      } else {
+        slot.textContent = inv[i].toUpperCase();
+      }
       slot.title = SPECIAL_NAMES[inv[i]] || inv[i];
       if (i === selectedSpecialIdx) slot.classList.add('selected');
       slot.addEventListener('click', () => {
@@ -341,7 +361,11 @@ function updateGlossary() {
 
     const key  = document.createElement('span');
     key.className = 'g-key';
-    key.textContent = sp.toUpperCase();
+    if (typeof bombTheme !== 'undefined' && bombTheme === 'icons') {
+      key.appendChild(makeBombIconEl(sp, 14));
+    } else {
+      key.textContent = sp.toUpperCase();
+    }
 
     const name = document.createElement('span');
     name.className = 'g-name';
@@ -845,8 +869,6 @@ const MOVE_INITIAL_DELAY = 180;
 const MOVE_REPEAT_RATE   = 60;
 let moveHeld = 0;
 
-// Map action -> allPlayers() index for target actions
-const TARGET_ACTIONS = ['target1','target2','target3','target4','target5','target6'];
 
 document.addEventListener('keydown', e => {
   const code   = e.code;
@@ -904,14 +926,9 @@ document.addEventListener('keydown', e => {
       discardPlayerSpecial();
       break;
 
-    default:
-      // Target selection
-      if (TARGET_ACTIONS.includes(action)) {
-        const idx = TARGET_ACTIONS.indexOf(action);
-        const target = allPlayers()[idx];
-        if (target) selectTarget(target.id);
-      }
-      break;
+    case 'targetSelf': selectTarget('player'); break;
+    case 'targetNext': navigateTarget('next'); break;
+    case 'targetPrev': navigateTarget('prev'); break;
   }
 });
 

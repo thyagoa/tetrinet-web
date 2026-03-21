@@ -257,9 +257,22 @@ input[type="range"]::-webkit-slider-thumb {
   align-content: start;
   padding-bottom: 4px;
 }
+/* Botões de navegação de alvo */
+.target-nav {
+  display: flex; gap: 4px; margin-top: 4px; flex-shrink: 0;
+}
+.target-nav-btn {
+  flex: 1; padding: 4px 0; background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border); color: var(--accent);
+  font-family: var(--font-pixel); font-size: 9px; cursor: pointer;
+  border-radius: 3px; transition: background 0.1s, border-color 0.1s;
+}
+.target-nav-btn:hover { background: rgba(0,224,255,0.12); border-color: var(--accent); }
+.target-nav-self { color: var(--text2); }
+
 .player-card {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 5px 4px; border-radius: 4px; cursor: pointer;
+  padding: 5px 4px; border-radius: 4px; cursor: default;
   border: 1px solid var(--border); background: var(--bg3);
   transition: border-color 0.12s, background 0.12s; flex-shrink: 0;
   min-width: 0;
@@ -376,6 +389,9 @@ input[type="range"]::-webkit-slider-thumb {
 .sb-rank-1 { color: #ffd700 !important; }
 .sb-rank-2 { color: #c0c0c0 !important; }
 .sb-rank-3 { color: #cd7f32 !important; }
+
+/* Ocultar coluna TIME quando não estiver em modo de times */
+#sbTeamHeader.hidden { display: none; }
 
 /* Indicador de time no scoreboard (modo 2v2/3v3/2v2v2) */
 .sb-team-dot {

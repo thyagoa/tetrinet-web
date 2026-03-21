@@ -228,14 +228,25 @@ class Renderer {
       ctx.fillRect(x + pad, y + size - pad - 2, size - pad*2, 2);
       ctx.fillRect(x + size - pad - 2, y + pad, 2, size - pad*2);
 
-      // Special label
+      // Special label / icon
       if (typeof type === 'string' && type.startsWith('sp:')) {
-        const sp = type.slice(3).toUpperCase();
-        ctx.fillStyle = '#000';
-        ctx.font = `bold ${Math.floor(size * 0.5)}px "Share Tech Mono", monospace`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(sp, x + size/2, y + size/2);
+        const sp = type.slice(3);
+        if (typeof bombTheme !== 'undefined' && bombTheme === 'icons') {
+          const img = getBombImg(sp);
+          const pad2 = Math.round(size * 0.12);
+          const iSize = size - pad2 * 2;
+          if (img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, x + pad2, y + pad2, iSize, iSize);
+          } else {
+            img.onload = () => {}; // image will be ready on next frame
+          }
+        } else {
+          ctx.fillStyle = '#000';
+          ctx.font = `bold ${Math.floor(size * 0.5)}px "Share Tech Mono", monospace`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(sp.toUpperCase(), x + size/2, y + size/2);
+        }
       }
     }
   }
@@ -255,7 +266,13 @@ class Renderer {
   }
 
   getColor(type) {
-    if (typeof type === 'string' && type.startsWith('sp:')) return COLORS.sp;
+    if (typeof type === 'string' && type.startsWith('sp:')) {
+      if (typeof bombTheme !== 'undefined' && bombTheme === 'icons') {
+        const sp = type.slice(3);
+        return (BOMB_ICON_BG && BOMB_ICON_BG[sp]) || '#333355';
+      }
+      return COLORS.sp;
+    }
     if (type === 'G') return '#444466'; // garbage
     return COLORS[type] || '#888888';
   }

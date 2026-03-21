@@ -32,7 +32,7 @@ const LOCALE_PTBR = {
   },
   "ui": {
     "gameName": "TETRINET",
-    "edition": "BROWSER EDITION (v0.15b)",
+    "edition": "BROWSER EDITION (v0.16b)",
     "yourName": "SEU NOME",
     "tutorial": "TUTORIAL",
     "settings": "CONFIGURAÇÕES",
@@ -96,7 +96,8 @@ const LOCALE_PTBR = {
   },
   "game": {
     "score": "SCORE", "lines": "LINHAS", "level": "NÍVEL", "next": "PRÓXIMA",
-    "target": "ALVO", "players": "JOGADORES", "bombs": "BOMBAS", "glossary": "GLOSSÁRIO", "nextBomb": "PRÓXIMA BOMBA",
+    "target": "ALVO", "players": "JOGADORES", "targetPrev": "◀", "targetSelf": "EU", "targetNext": "▶",
+    "bombs": "BOMBAS", "glossary": "GLOSSÁRIO", "nextBomb": "PRÓXIMA BOMBA",
     "noTarget": "→ sem alvo", "onYou": "→ em você", "onTarget": "→ em {name}", "noBombs": "Nenhuma",
     "gameStarted": "Partida iniciada!", "linesCleared": "{n} linha(s) eliminada(s)!",
     "bombsCaptured": "+{n} bomba(s) capturada(s)!",
@@ -142,7 +143,11 @@ const LOCALE_PTBR = {
     "movement": "MOVIMENTO", "targets": "ALVOS", "bombs": "BOMBAS",
     "pressKey": "PRESSIONE UMA TECLA...",
     "conflictKey": "Esta tecla não pode ser usada.",
-    "conflictAction": "Conflito! \"{key}\" já está mapeado para \"{action}\"."
+    "conflictAction": "Conflito! \"{key}\" já está mapeado para \"{action}\".",
+    "bombTheme":      "TEMA DE BOMBAS",
+    "bombThemeLabel": "Estilo de exibição das bombas",
+    "themeLetters":   "ABC LETRAS",
+    "themeIcons":     "🎯 ÍCONES"
   },
   "modes": {
     "ffa":   { "name": "FREE FOR ALL", "desc": "Até 6 jogadores" },
