@@ -39,7 +39,7 @@
     "specials":       "BOMBAS ESPECIAIS",
     "specialsText":   "Ao limpar linhas, você captura bombas do inventário do alvo. Use bombas para atacar oponentes ou se defender. Selecione um alvo com as teclas de alvo antes de usar.",
     "targeting":      "SELEÇÃO DE ALVO",
-    "targetingText":  "Pressione as teclas de alvo (padrão: Q/W/E/A/S/D) para selecionar qual jogador receberá sua próxima bomba. Aliados são exibidos em verde — evite atacá-los!",
+    "targetingText":  "Use as teclas de alvo para selecionar quem receberá sua próxima bomba: Q = você mesmo, W = jogador anterior, E = próximo jogador. Aliados aparecem em verde — evite atacá-los!",
     "modes":          "MODOS DE JOGO",
     "modesText":      "Escolha o modo ao criar a sala. Em modos de equipe, você e seus aliados compartilham a vitória. Bots preenchem slots vazios automaticamente.",
     "controls":       "CONTROLES",

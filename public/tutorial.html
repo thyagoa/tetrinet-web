@@ -79,6 +79,7 @@
   </div>
 
   <script src="js/i18n.js"></script>
+  <script src="js/bomb-icons.js"></script>
   <script src="js/keybinds.js"></script>
   <script>
     i18n.load().then(() => {
@@ -95,13 +96,27 @@
       SPECIAL_KEYS.forEach(key => {
         const item = document.createElement('div');
         item.className = 'tutorial-special-item';
-        item.innerHTML = `
-          <span class="tutorial-sp-key">${key.toUpperCase()}</span>
-          <div class="tutorial-sp-info">
-            <span class="tutorial-sp-name">${i18n.specialName(key)}</span>
-            <span class="tutorial-sp-desc">${i18n.specialDesc(key)}</span>
-          </div>
+
+        const keyEl = document.createElement('span');
+        keyEl.className = 'tutorial-sp-key';
+        if (bombTheme === 'icons') {
+          const color = BOMB_ICON_COLORS[key] || '#ffffff';
+          keyEl.style.borderColor = color;
+          keyEl.style.color = color;
+          keyEl.appendChild(makeBombIconEl(key, 18));
+        } else {
+          keyEl.textContent = key.toUpperCase();
+        }
+
+        const infoEl = document.createElement('div');
+        infoEl.className = 'tutorial-sp-info';
+        infoEl.innerHTML = `
+          <span class="tutorial-sp-name">${i18n.specialName(key)}</span>
+          <span class="tutorial-sp-desc">${i18n.specialDesc(key)}</span>
         `;
+
+        item.appendChild(keyEl);
+        item.appendChild(infoEl);
         grid.appendChild(item);
       });
     }
@@ -129,7 +144,7 @@
 
     const CONTROL_ACTIONS = [
       'moveLeft','moveRight','rotate','softDrop','hardDrop',
-      'target1','target2','target3','target4','target5','target6',
+      'targetSelf','targetPrev','targetNext',
       'useBomb','discardBomb',
     ];
 
