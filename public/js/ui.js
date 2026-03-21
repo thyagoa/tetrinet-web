@@ -89,7 +89,8 @@ if (IS_MULTIPLAYER && socketClient) {
   });
 
   // Remote game over (non-host receives)
-  mpSocket.on('game_over', ({ winners }) => {
+  mpSocket.on('game_over', ({ winners, finalScores }) => {
+    applyFinalScores(finalScores);
     showGameOver(winners);
   });
 
@@ -704,6 +705,26 @@ function markBotDead(id) {
   selectTarget(selectedTarget);
 }
 
+// ===== FINAL SCORES SYNC =====
+function applyFinalScores(finalScores) {
+  if (!finalScores) return;
+  finalScores.forEach(({ id, score, lines, level }) => {
+    if (remotePlayers[id]) {
+      remotePlayers[id].score = score;
+      remotePlayers[id].lines = lines;
+      remotePlayers[id].level = level;
+    }
+    // Atualiza bots locais do host (estão em bots[], não remotePlayers)
+    const bot = bots.find(b => b.id === id);
+    if (bot) {
+      bot.score = score;
+      bot.lines = lines;
+      bot.level = level;
+    }
+    // player.score (score local) nunca é sobrescrito aqui
+  });
+}
+
 // ===== WIN/LOSE CHECK =====
 function checkGameOver() {
   const result = checkTeamWinner(allPlayers(), teams, GAME_MODE);
@@ -827,11 +848,15 @@ function showGameOver(winners) {
     sub.textContent = i18n.t('game.winner', { name: winners.name });
   }
 
-  buildScoreboard(winnerIds);
-
   if (IS_MULTIPLAYER && IS_HOST && socketClient) {
-    socketClient.sendGameOver(winners);
+    const finalScores = allPlayers().map(p => ({
+      id: p.id, score: p.score, lines: p.lines, level: p.level
+    }));
+    applyFinalScores(finalScores); // host aplica também para consistência local
+    socketClient.sendGameOver(winners, finalScores);
   }
+
+  buildScoreboard(winnerIds);
 
   const playerWon = winnerIds.includes('player') || (MY_PLAYER_ID && winnerIds.includes(MY_PLAYER_ID));
   if (playerWon) {

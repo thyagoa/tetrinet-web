@@ -274,10 +274,10 @@ io.on('connection', socket => {
     io.to(code).emit('player_dead', { playerId });
   });
 
-  socket.on('game_over', ({ winners }) => {
+  socket.on('game_over', ({ winners, finalScores }) => {
     const code = socket.data.roomCode;
     if (!code) return;
-    socket.to(code).emit('game_over', { winners });
+    socket.to(code).emit('game_over', { winners, finalScores });
   });
 
   socket.on('narrator_comment', ({ text }) => {

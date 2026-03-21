@@ -113,8 +113,8 @@ class SocketClient {
     this._socket.emit('player_dead', { playerId });
   }
 
-  sendGameOver(winners) {
-    this._socket.emit('game_over', { winners });
+  sendGameOver(winners, finalScores) {
+    this._socket.emit('game_over', { winners, finalScores });
   }
 
   sendNarratorComment({ text }) {
