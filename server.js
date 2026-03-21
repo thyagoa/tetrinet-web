@@ -280,6 +280,12 @@ io.on('connection', socket => {
     socket.to(code).emit('game_over', { winners });
   });
 
+  socket.on('narrator_comment', ({ text }) => {
+    const code = socket.data.roomCode;
+    if (!code || !text) return;
+    socket.to(code).emit('narrator_comment', { text });
+  });
+
   socket.on('leave_room', () => {
     cancelLeave(socket.id);
     handleLeave(socket);

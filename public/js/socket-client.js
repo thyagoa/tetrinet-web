@@ -16,6 +16,7 @@ class SocketClient {
       'room_updated','host_changed','chat_message','error_msg',
       'game_starting','game_joined','board_update','use_special','player_dead','game_over',
       'webrtc_offer','webrtc_answer','webrtc_ice_candidate','voice_hello',
+      'narrator_comment',
     ];
     SERVER_EVENTS.forEach(ev => {
       this._socket.on(ev, data => this._emit(ev, data));
@@ -114,6 +115,10 @@ class SocketClient {
 
   sendGameOver(winners) {
     this._socket.emit('game_over', { winners });
+  }
+
+  sendNarratorComment({ text }) {
+    this._socket.emit('narrator_comment', { text });
   }
 
   // ===== WEBRTC SIGNALING =====

@@ -92,6 +92,11 @@ if (IS_MULTIPLAYER && socketClient) {
   mpSocket.on('game_over', ({ winners }) => {
     showGameOver(winners);
   });
+
+  // Narrator comments broadcast from other players
+  mpSocket.on('narrator_comment', ({ text }) => {
+    logEvent(text, 'narrator'); // logEvent direto — não re-emite em cascata
+  });
 }
 
 // ===== PIECE SEQUENCE (shared) =====
@@ -394,6 +399,13 @@ function logEvent(msg, type='') {
   while (eventLog.children.length > MAX_LOG) eventLog.removeChild(eventLog.firstChild);
 }
 
+function narratorLog(msg) {
+  logEvent(msg, 'narrator');
+  if (IS_MULTIPLAYER && socketClient) {
+    socketClient.sendNarratorComment({ text: msg });
+  }
+}
+
 // ===== FLOATING BOMB LABELS =====
 const BOMB_LABEL_COLORS = {
   a:'#ff1744', c:'#00e676', b:'#40c4ff', r:'#ff9100',
@@ -492,7 +504,7 @@ function playerDie() {
   document.getElementById('deadOverlay').classList.remove('hidden');
   logEvent(i18n.t('game.youEliminated'), 'attack');
   const _goMsg = narrator.event('gameOver');
-  if (_goMsg) logEvent(_goMsg, 'narrator');
+  if (_goMsg) narratorLog(_goMsg);
   if (IS_MULTIPLAYER && socketClient) {
     socketClient.sendPlayerDead(MY_PLAYER_ID || 'player');
   }
@@ -516,10 +528,10 @@ function playerLockPiece() {
 
     if (cleared >= 4) {
       const _msg = narrator.event('tetris');
-      if (_msg) logEvent(_msg, 'narrator');
+      if (_msg) narratorLog(_msg);
     } else {
       const _msg = narrator.event('linesCleared', 5000);
-      if (_msg) logEvent(_msg, 'narrator');
+      if (_msg) narratorLog(_msg);
     }
 
     const spCount = specialsForLines(cleared);
@@ -537,7 +549,7 @@ function playerLockPiece() {
     });
     if (player.inventory.length > _invBefore) {
       const _msg = narrator.event('bombCaptured', 4000);
-      if (_msg) logEvent(_msg, 'narrator');
+      if (_msg) narratorLog(_msg);
     }
 
     updateHUD();
@@ -549,7 +561,7 @@ function playerLockPiece() {
   const _topFilled = player.board.grid.slice(0, 4).some(row => row.some(c => c !== 0));
   if (_topFilled && !player.board.isGameOver()) {
     const _msg = narrator.event('nearDeath', 8000);
-    if (_msg) logEvent(_msg, 'narrator');
+    if (_msg) narratorLog(_msg);
   }
 
   // Update player's own mini board
@@ -609,7 +621,7 @@ function applySpecial(attackerId, targetId, special) {
     // Narrator only for self here — bot→player narrator is handled in onUseSpecial after botUsedBomb
     if (selfMsg) {
       const _nm1 = narrator.bomb(special, 'self');
-      if (_nm1) logEvent(_nm1, 'narrator');
+      if (_nm1) narratorLog(_nm1);
     }
   } else {
     const bot = bots.find(b=>b.id===targetId);
@@ -623,7 +635,7 @@ function applySpecial(attackerId, targetId, special) {
         SFX.botEliminated();
         logEvent(i18n.t('game.botEliminated', { name: bot.name }), 'attack');
         const _em = narrator.event('botEliminated');
-        if (_em) logEvent(_em, 'narrator');
+        if (_em) narratorLog(_em);
       }
     }
   }
@@ -657,7 +669,7 @@ function usePlayerSpecial() {
     logEvent(i18n.t('game.usedOnTarget', { bomb: i18n.specialName(special), name: targetName }), 'success');
     const _ctx = getBombContext('player', selectedTarget);
     const _nm = narrator.bomb(special, _ctx);
-    if (_nm) logEvent(_nm, 'narrator');
+    if (_nm) narratorLog(_nm);
   }
 }
 
@@ -682,7 +694,7 @@ bots.forEach(bot => {
     logEvent(i18n.t('game.botUsedBomb', { name: botObj.name, bomb: i18n.specialName(sp) }), 'attack');
     const _ctx = getBombContext(id, t.id);
     const _nm = narrator.bomb(sp, _ctx);
-    if (_nm) logEvent(_nm, 'narrator');
+    if (_nm) narratorLog(_nm);
   };
 });
 
@@ -824,7 +836,7 @@ function showGameOver(winners) {
   const playerWon = winnerIds.includes('player') || (MY_PLAYER_ID && winnerIds.includes(MY_PLAYER_ID));
   if (playerWon) {
     const _vm = narrator.event('victory');
-    if (_vm) logEvent(_vm, 'narrator');
+    if (_vm) narratorLog(_vm);
   }
   setTimeout(() => playerWon ? SFX.victory() : SFX.gameOver(), 300);
 }
@@ -967,7 +979,7 @@ function discardPlayerSpecial() {
   renderInventory();
   logEvent(i18n.t('game.bombDiscarded', { name: i18n.specialName(sp) }), 'info');
   const _dm = narrator.event('bombDiscarded');
-  if (_dm) logEvent(_dm, 'narrator');
+  if (_dm) narratorLog(_dm);
 }
 
 // ===== WATCH / LEAVE BUTTONS =====
