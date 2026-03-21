@@ -75,6 +75,17 @@
     });
 
     let currentBinds = loadKeybinds();
+
+    // Migrate from old target1-6 system to targetSelf/Prev/Next
+    if (!currentBinds.targetSelf) {
+      currentBinds.targetSelf = currentBinds.target1 || 'KeyQ';
+      currentBinds.targetPrev = currentBinds.target2 || 'KeyW';
+      currentBinds.targetNext = currentBinds.target3 || 'KeyE';
+      ['target1','target2','target3','target4','target5','target6'].forEach(k => delete currentBinds[k]);
+      saveKeybinds(currentBinds);
+      Object.assign(keybinds, currentBinds);
+    }
+
     let listeningFor = null;
 
     // ===== BOMB THEME BUTTONS =====
@@ -127,7 +138,7 @@
 
       const groups = [
         { key: 'settings.movement', actions: ['moveLeft','moveRight','rotate','softDrop','hardDrop'] },
-        { key: 'settings.targets',  actions: ['target1','target2','target3','target4','target5','target6'] },
+        { key: 'settings.targets',  actions: ['targetSelf','targetPrev','targetNext'] },
         { key: 'settings.bombs',    actions: ['useBomb','discardBomb'] },
       ];
 

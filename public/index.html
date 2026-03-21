@@ -33,7 +33,7 @@
         <label class="entry-label" for="playerName" data-i18n="ui.yourName">SEU NOME</label>
         <input type="text" id="playerName" maxlength="16" placeholder="JOGADOR_1" autocomplete="off" spellcheck="false">
         <a href="tutorial.html" class="tutorial-link" data-i18n="ui.tutorial">TUTORIAL</a>
-        <a href="settings.html" class="settings-link">⚙ <span data-i18n="ui.settings">CONFIGURAÇÕES</span></a>
+        <a href="settings.html" class="settings-link"><span data-i18n="ui.settings">CONFIGURAÇÕES</span></a>
       </div>
 
       <div id="serverStatus" class="server-status hidden"></div>
@@ -128,6 +128,12 @@
   <script>
     i18n.load().then(() => {
       i18n.applyToDOM();
+      // Migrate from old target1-6 system to targetSelf/Prev/Next
+      if (!keybinds.targetSelf) {
+        keybinds.targetSelf = keybinds.target1 || 'KeyQ';
+        keybinds.targetPrev = keybinds.target2 || 'KeyW';
+        keybinds.targetNext = keybinds.target3 || 'KeyE';
+      }
       buildControlsList();
     });
 
@@ -139,7 +145,7 @@
 
       const actions = [
         'moveLeft', 'moveRight', 'rotate', 'softDrop', 'hardDrop',
-        'target1', 'target2', 'target3', 'target4', 'target5', 'target6',
+        'targetSelf', 'targetPrev', 'targetNext',
         'useBomb', 'discardBomb',
       ];
 
