@@ -157,6 +157,17 @@ io.on('connection', socket => {
     };
 
     room.players.push(bot);
+
+    // Assign bot to first available game slot (server-authoritative to avoid client race conditions)
+    const gameTotal = maxPlayers(room.mode); // maxPlayers == gameSlotCount for all modes
+    if (!room.slots || room.slots.length < 6) {
+      room.slots = Array.from({ length: 6 }, (_, i) => (room.slots || [])[i] ?? null);
+    }
+    const slotIdx = room.slots.findIndex((s, i) => s === null && i < gameTotal);
+    if (slotIdx !== -1) {
+      room.slots[slotIdx] = { playerId: bot.id, playerName: bot.name, isBot: true };
+    }
+
     io.to(code).emit('player_joined', { player: bot });
     io.to(code).emit('room_updated', { room: safeRoom(room) });
   });
@@ -168,6 +179,9 @@ io.on('connection', socket => {
     if (!room || room.host !== socket.id) return;
 
     room.players = room.players.filter(p => p.id !== botId);
+    if (room.slots) {
+      room.slots = room.slots.map(s => (s && s.playerId === botId) ? null : s);
+    }
     io.to(code).emit('player_left', { playerId: botId });
     io.to(code).emit('room_updated', { room: safeRoom(room) });
   });

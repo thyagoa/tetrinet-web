@@ -269,10 +269,9 @@
     function assignBotToFirstEmpty(bot) {
       const gameTotal = gameSlotCount(selectedMode);
       const idx = slots.findIndex((s, i) => s === null && i < gameTotal);
-      if (idx !== -1) {
-        slots[idx] = { playerId: bot.id, playerName: bot.name, isBot: true };
-        if (socketClient) socketClient.sendSlotUpdate(slots);
-      }
+      if (idx !== -1) slots[idx] = { playerId: bot.id, playerName: bot.name, isBot: true };
+      // Sem sendSlotUpdate: servidor atribui slots de bots em add_bot (autoritativo)
+      // room_updated já chegará com o slot correto
     }
 
     function removeBotFromSlots(botId) {
