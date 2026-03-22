@@ -162,11 +162,41 @@ function allPlayers() { return [player, ...bots, ...Object.values(remotePlayers)
 function alivePlayers() { return allPlayers().filter(p=>p.alive); }
 
 // ===== TEAMS =====
-const allP = allPlayers();
-const teams = buildTeams(allP, GAME_MODE);
-allP.forEach(p => p.team = teams[p.id]);
+function slotTeamOf(slotIdx, mode) {
+  const sizes = { ffa:[6], '1v1':[1,1], '2v2':[2,2], '3v3':[3,3], '2v2v2':[2,2,2] }[mode] || [6];
+  let offset = 0;
+  for (let t = 0; t < sizes.length; t++) {
+    if (slotIdx < offset + sizes[t]) return t;
+    offset += sizes[t];
+  }
+  return -1;
+}
 
-const TEAM_COLORS = ['#7c4dff','#ff1744','#00e676','#ffea00','#00e5ff','#ff6d00'];
+let teams;
+const slotsCfg = cfg.slots || [];
+if (slotsCfg.length > 0) {
+  // Atribuir time por posição de slot — respeita formação do lobby
+  teams = {};
+  slotsCfg.forEach((slot, idx) => {
+    if (!slot || slot.isSpectator) return;
+    // FFA: cor individual por posição de slot; modos de time: grupo de time
+    const teamIdx = GAME_MODE === 'ffa' ? idx : slotTeamOf(idx, GAME_MODE);
+    if (teamIdx < 0) return;
+    const found = allPlayers().find(p =>
+      p.id === 'player' ? slot.playerId === cfg.playerId : p.id === slot.playerId
+    );
+    if (found) { found.team = teamIdx; teams[found.id] = teamIdx; }
+  });
+} else {
+  // Fallback: sem slots (solo sem lobby) — comportamento original
+  const allP = allPlayers();
+  teams = buildTeams(allP, GAME_MODE);
+  allP.forEach(p => p.team = teams[p.id]);
+}
+
+const TEAM_COLORS = GAME_MODE === 'ffa'
+  ? ['#7c4dff','#ff1744','#00e676','#ffea00','#00e5ff','#ff6d00']
+  : ['#2979ff','#ff1744','#00e676','#ffea00','#00e5ff','#ff6d00'];
 
 // ===== RENDERER =====
 const mainCanvas   = document.getElementById('gameCanvas');
