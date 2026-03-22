@@ -184,7 +184,19 @@ function buildPlayersPanel() {
   playersPanel.innerHTML = '';
   Object.keys(cardMap).forEach(k => delete cardMap[k]);
 
-  allPlayers().forEach((p) => {
+  const _panelPlayers = (() => {
+    const all = allPlayers();
+    if (GAME_MODE === 'ffa' || GAME_MODE === '1v1') return all;
+    const myTeam = player.team;
+    return [...all].sort((a, b) => {
+      const rank = p => p.id === 'player' ? 0 : (p.team === myTeam ? 1 : 2);
+      const ra = rank(a), rb = rank(b);
+      if (ra !== rb) return ra - rb;
+      return a.team - b.team;
+    });
+  })();
+
+  _panelPlayers.forEach((p) => {
     const isSelf = p.id === 'player';
     const teamColor = TEAM_COLORS[p.team] || '#888888';
 
@@ -256,10 +268,7 @@ function navigateTarget(dir) {
   selectTarget(list[idx].id);
 }
 
-// Botões de navegação de alvo
-document.getElementById('btnTargetSelf')?.addEventListener('click', () => selectTarget('player'));
-document.getElementById('btnTargetNext')?.addEventListener('click', () => navigateTarget('next'));
-document.getElementById('btnTargetPrev')?.addEventListener('click', () => navigateTarget('prev'));
+
 
 function updateBombCount(id) {
   const entry = cardMap[id];
@@ -302,11 +311,19 @@ function updateNextBombPanel() {
 
   if (!selectedTarget) {
     targetEl.textContent = i18n.t('game.noTarget');
+    targetEl.style.color = '';
   } else if (selectedTarget === 'player') {
     targetEl.textContent = i18n.t('game.onYou');
+    targetEl.style.color = TEAM_COLORS[player.team] || '';
   } else {
     const t = allPlayers().find(p => p.id === selectedTarget);
-    targetEl.textContent = t ? i18n.t('game.onTarget', { name: t.name }) : '';
+    if (t) {
+      targetEl.textContent = i18n.t('game.onTarget', { name: t.name });
+      targetEl.style.color = TEAM_COLORS[t.team] || '';
+    } else {
+      targetEl.textContent = '';
+      targetEl.style.color = '';
+    }
   }
 }
 
