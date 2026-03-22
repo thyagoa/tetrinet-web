@@ -269,7 +269,10 @@
     function assignBotToFirstEmpty(bot) {
       const gameTotal = gameSlotCount(selectedMode);
       const idx = slots.findIndex((s, i) => s === null && i < gameTotal);
-      if (idx !== -1) slots[idx] = { playerId: bot.id, playerName: bot.name, isBot: true };
+      if (idx !== -1) {
+        slots[idx] = { playerId: bot.id, playerName: bot.name, isBot: true };
+        if (socketClient) socketClient.sendSlotUpdate(slots);
+      }
     }
 
     function removeBotFromSlots(botId) {
@@ -470,23 +473,17 @@
         btn.classList.add('active');
         selectedMode = btn.dataset.mode;
 
-        // Remove all bots before switching mode
-        if (currentRoom) {
-          const bots = currentRoom.players.filter(p => p.isBot);
-          bots.forEach(bot => {
-            removeBotFromSlots(bot.id);
-            server.removeBot({ botId: bot.id });
-          });
+        // Remove all bots before switching mode (atomic: clearBots flag evita race condition)
+        const hadBots = currentRoom ? currentRoom.players.some(p => p.isBot) : false;
+        if (currentRoom && hadBots) {
           currentRoom.players = currentRoom.players.filter(p => !p.isBot);
-          if (bots.length > 0) {
-            addSystemMsg(i18n.t('lobby.botsRemovedOnModeChange'));
-          }
+          addSystemMsg(i18n.t('lobby.botsRemovedOnModeChange'));
         }
 
         initSlots(selectedMode);
         renderSlots();
         addSystemMsg(i18n.t('lobby.modeChanged', { mode: selectedMode.toUpperCase() }));
-        server.updateRoomConfig({ mode: selectedMode, botDifficulty: selectedDiff });
+        server.updateRoomConfig({ mode: selectedMode, botDifficulty: selectedDiff, clearBots: hadBots });
       });
     });
 

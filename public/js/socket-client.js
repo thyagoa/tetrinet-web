@@ -70,8 +70,8 @@ class SocketClient {
     this._socket.emit('remove_bot', { botId });
   }
 
-  updateRoomConfig({ mode, botDifficulty }) {
-    this._socket.emit('update_config', { mode, botDifficulty });
+  updateRoomConfig({ mode, botDifficulty, clearBots }) {
+    this._socket.emit('update_config', { mode, botDifficulty, clearBots });
   }
 
   sendChat({ message, playerName }) {

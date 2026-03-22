@@ -173,13 +173,19 @@ io.on('connection', socket => {
   });
 
   // ----- UPDATE CONFIG -----
-  socket.on('update_config', ({ mode, botDifficulty }) => {
+  socket.on('update_config', ({ mode, botDifficulty, clearBots }) => {
     const code = socket.data.roomCode;
     const room = rooms[code];
     if (!room || room.host !== socket.id) return;
 
     room.mode = mode;
     room.botDifficulty = botDifficulty;
+    if (clearBots) {
+      const removed = room.players.filter(p => p.isBot);
+      room.players = room.players.filter(p => !p.isBot);
+      room.slots = [];
+      removed.forEach(bot => io.to(code).emit('player_left', { playerId: bot.id }));
+    }
     io.to(code).emit('room_updated', { room: safeRoom(room) });
   });
 

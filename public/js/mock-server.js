@@ -187,13 +187,18 @@ class MockServer {
     this._emit('room_updated', { room: this._safeRoom(this._roomCode) });
   }
 
-  updateRoomConfig({ mode, botDifficulty }) {
+  updateRoomConfig({ mode, botDifficulty, clearBots }) {
     if (!this._isHost) return;
     const room = this._loadRoom(this._roomCode);
     if (!room) return;
 
     room.mode = mode;
     room.botDifficulty = botDifficulty;
+    if (clearBots) {
+      const removed = room.players.filter(p => p.isBot);
+      room.players = room.players.filter(p => !p.isBot);
+      removed.forEach(bot => this._emit('player_left', { playerId: bot.id }));
+    }
     this._rooms[this._roomCode] = room;
     this._saveRoom(this._roomCode);
     this._emit('room_updated', { room: this._safeRoom(this._roomCode) });
