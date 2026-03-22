@@ -166,7 +166,15 @@
       if (occupant) slot.dataset.id = occupant.playerId;
 
       if (occupant) {
-        const icon = occupant.isSpectator ? '👁' : (occupant.isBot ? '🤖' : '👤');
+        let icon;
+        if (occupant.isSpectator) {
+          icon = '👁';
+        } else if (occupant.isBot) {
+          const botDiff = currentRoom?.players.find(p => p.id === occupant.playerId)?.difficulty || 2;
+          icon = makeBotIconSVG(botDiff, 20);
+        } else {
+          icon = '👤';
+        }
         slot.innerHTML = `
           <span class="slot-icon">${icon}</span>
           <span class="slot-name">${occupant.playerName}</span>
@@ -307,6 +315,18 @@
       });
     }
 
+    // ===== BOT ICON SVG =====
+    function makeBotIconSVG(difficulty, size = 18) {
+      const c = { 1: '#4caf50', 2: '#ffc107', 3: '#f44336' }[difficulty] || '#888';
+      return `<svg viewBox="0 0 16 16" width="${size}" height="${size}" style="vertical-align:middle;display:inline-block;flex-shrink:0">
+        <rect x="7" y="0" width="2" height="3" rx="1" fill="${c}"/>
+        <rect x="2" y="3" width="12" height="10" rx="2" fill="${c}"/>
+        <rect x="4" y="6" width="3" height="2.5" rx="1" fill="rgba(0,0,0,0.55)"/>
+        <rect x="9" y="6" width="3" height="2.5" rx="1" fill="rgba(0,0,0,0.55)"/>
+        <rect x="5" y="10" width="6" height="1.5" rx="0.75" fill="rgba(0,0,0,0.35)"/>
+      </svg>`;
+    }
+
     // ===== RENDER PLAYERS LIST =====
     function renderPlayers(room) {
       const list  = document.getElementById('playersList');
@@ -328,7 +348,11 @@
 
         const icon = document.createElement('span');
         icon.className = 'player-icon';
-        icon.textContent = p.isBot ? '🤖' : (p.isHost ? '👑' : '👤');
+        if (p.isBot) {
+          icon.innerHTML = makeBotIconSVG(p.difficulty, 18);
+        } else {
+          icon.textContent = p.isHost ? '👑' : '👤';
+        }
 
         const name = document.createElement('span');
         name.className = 'player-name';
@@ -376,14 +400,18 @@
         const header = document.createElement('div');
         header.className = 'chat-msg-header';
         header.innerHTML = `<span class="chat-name" ${entry.isBot?'style="color:var(--text2)"':''}>
-          ${entry.isBot?'🤖 ':''}${entry.playerName}</span>
+          ${entry.isBot ? makeBotIconSVG(currentRoom?.players.find(p=>p.name===entry.playerName)?.difficulty||2, 14)+' ' : ''}${entry.playerName}</span>
           <span class="chat-time">${entry.time}</span>`;
         wrap.appendChild(header);
       }
 
       const text = document.createElement('div');
       text.className = 'chat-msg-text';
-      text.textContent = entry.message;
+      if (isSystem) {
+        text.innerHTML = entry.message;
+      } else {
+        text.textContent = entry.message;
+      }
       wrap.appendChild(text);
       msgs.appendChild(wrap);
       msgs.scrollTop = msgs.scrollHeight;
@@ -547,7 +575,7 @@
       if (player.isBot) assignBotToFirstEmpty(player);
       renderPlayers(currentRoom);
       renderSlots();
-      addSystemMsg((player.isBot ? '🤖 ' : '') + i18n.t('lobby.playerJoined', { name: player.name }));
+      addSystemMsg((player.isBot ? makeBotIconSVG(player.difficulty, 14)+' ' : '') + i18n.t('lobby.playerJoined', { name: player.name }));
     });
 
     server.on('player_left', ({ playerId }) => {
