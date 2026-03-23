@@ -5,12 +5,18 @@
     "flag":        "🇧🇷",
     "author":      "TetriNET Team",
     "version":     "1.0",
-    "gameVersion": "0.14b"
+    "gameVersion": "0.17b"
+  },
+
+  "index": {
+    "easy":   "FÁCIL",
+    "medium": "MÉDIO",
+    "hard":   "DIFÍCIL"
   },
 
   "ui": {
     "gameName":        "TETRINET",
-    "edition":         "BROWSER EDITION (v0.16b)",
+    "edition":         "BROWSER EDITION (v0.17b)",
     "yourName":        "SEU NOME",
     "tutorial":        "TUTORIAL",
     "settings":        "CONFIGURAÇÕES",
@@ -72,7 +78,9 @@
     "botsRemovedOnModeChange": "Bots removidos após troca de modo. Adicione-os novamente se desejar.",
     "roomFull":                "Sala cheia. Não é possível adicionar mais bots.",
     "roomNotFound":            "Sala não encontrada. Voltando...",
-    "matchEnded":              "Partida encerrada — {result} — prontos para mais uma?"
+    "matchEnded":              "Partida encerrada — {result} — prontos para mais uma?",
+    "noGameSlotsForBot":       "Slots de jogo cheios — sem espaço para bot.",
+    "spectators":              "ESPECTADORES"
   },
 
   "game": {

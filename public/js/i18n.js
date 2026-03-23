@@ -28,11 +28,11 @@ const KNOWN_LOCALES = [
 const LOCALE_PTBR = {
   "meta": {
     "code": "pt-BR", "name": "Português (Brasil)", "flag": "🇧🇷",
-    "author": "TetriNET Team", "version": "1.0", "gameVersion": "0.14b"
+    "author": "TetriNET Team", "version": "1.0", "gameVersion": "0.17b"
   },
   "ui": {
     "gameName": "TETRINET",
-    "edition": "BROWSER EDITION (v0.16b)",
+    "edition": "BROWSER EDITION (v0.17b)",
     "yourName": "SEU NOME",
     "tutorial": "TUTORIAL",
     "settings": "CONFIGURAÇÕES",
@@ -60,7 +60,7 @@ const LOCALE_PTBR = {
     "specials": "BOMBAS ESPECIAIS",
     "specialsText": "Ao limpar linhas, você captura bombas do inventário do alvo. Use bombas para atacar oponentes ou se defender. Selecione um alvo com as teclas de alvo antes de usar.",
     "targeting": "SELEÇÃO DE ALVO",
-    "targetingText": "Pressione as teclas de alvo (padrão: Q/W/E/A/S/D) para selecionar qual jogador receberá sua próxima bomba. Aliados são exibidos em verde — evite atacá-los!",
+    "targetingText": "Use as teclas de alvo para selecionar quem receberá sua próxima bomba: Q = você mesmo, W = jogador anterior, E = próximo jogador. Aliados aparecem em verde — evite atacá-los!",
     "modes": "MODOS DE JOGO",
     "modesText": "Escolha o modo ao criar a sala. Em modos de equipe, você e seus aliados compartilham a vitória. Bots preenchem slots vazios automaticamente.",
     "controls": "CONTROLES",
@@ -92,7 +92,12 @@ const LOCALE_PTBR = {
     "botsRemovedOnModeChange": "Bots removidos após troca de modo. Adicione-os novamente se desejar.",
     "roomFull": "Sala cheia. Não é possível adicionar mais bots.",
     "roomNotFound": "Sala não encontrada. Voltando...",
-    "matchEnded": "Partida encerrada — {result} — prontos para mais uma?"
+    "matchEnded": "Partida encerrada — {result} — prontos para mais uma?",
+    "noGameSlotsForBot": "Slots de jogo cheios — sem espaço para bot.",
+    "spectators": "ESPECTADORES"
+  },
+  "index": {
+    "easy": "FÁCIL", "medium": "MÉDIO", "hard": "DIFÍCIL"
   },
   "game": {
     "score": "SCORE", "lines": "LINHAS", "level": "NÍVEL", "next": "PRÓXIMA",
@@ -111,7 +116,10 @@ const LOCALE_PTBR = {
     "usedOnTarget": "Você usou {bomb} em {name}!", "receivedBomb": "{attacker} usou {bomb} em você!",
     "botUsedBomb": "{name} usou {bomb}!", "gameOver": "FIM DE JOGO", "draw": "EMPATE!",
     "victory": "🏆 VITÓRIA! 🏆", "youWon": "🏆 VOCÊ VENCEU! 🏆",
+    "defeat": "DERROTA!", "playerWins": "{name} VENCEU!",
     "winner": "Vencedor: {name}", "winners": "Vencedor(es): {names}",
+    "team": "TIME {n}", "teamWins": "{label} VENCEU!", "teamMembers": "Integrantes: {names}",
+    "sbTeam": "TIME",
     "playAgain": "▶ JOGAR NOVAMENTE", "backLobby": "⬅ VOLTAR AO LOBBY",
     "mainMenu": "✕ MENU PRINCIPAL", "countdown": "PARTIDA COMEÇA EM",
     "sfxOn": "Som ligado (M)", "sfxOff": "Som desligado (M)",
@@ -132,8 +140,7 @@ const LOCALE_PTBR = {
   "controls": {
     "moveLeft": "Mover Esquerda", "moveRight": "Mover Direita", "rotate": "Rotacionar",
     "softDrop": "Queda Rápida", "hardDrop": "Drop Instantâneo",
-    "target1": "Alvo 1", "target2": "Alvo 2", "target3": "Alvo 3",
-    "target4": "Alvo 4", "target5": "Alvo 5", "target6": "Alvo 6",
+    "targetSelf": "Alvo: EU", "targetPrev": "Alvo: Anterior", "targetNext": "Alvo: Próximo",
     "useBomb": "Usar Bomba", "discardBomb": "Descartar Bomba"
   },
   "settings": {
