@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TetriNET: Tag Team</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .logo-tag {
+      font-family: var(--font-pixel);
+      font-size: 14px;
+      color: var(--piece-L);
+      letter-spacing: 4px;
+      margin-top: 6px;
+      text-shadow: 0 0 12px var(--piece-L), 0 0 24px var(--piece-L);
+    }
+    .back-link {
+      font-family: var(--font-pixel);
+      font-size: 8px;
+      color: var(--text2);
+      text-decoration: none;
+      letter-spacing: 2px;
+      margin-top: 4px;
+      display: inline-block;
+      transition: color .2s;
+    }
+    .back-link:hover { color: var(--text); }
+  </style>
+</head>
+<body class="entry-page">
+  <div class="scanlines"></div>
+
+  <div class="entry-container">
+    <header class="lobby-header">
+      <div class="logo-wrap">
+        <h1 class="logo">TETRI<span>NET</span></h1>
+        <p class="logo-tag">: TAG TEAM</p>
+        <p class="logo-sub">BROWSER EDITION (v0.17b)</p>
+        <a href="../index.html" class="back-link">← MODO CLÁSSICO</a>
+      </div>
+      <div class="logo-blocks">
+        <span class="lb lb-i lb-active">T</span>
+        <span class="lb lb-o lb-active">A</span>
+        <span class="lb lb-t lb-active">G</span>
+        <span class="lb lb-l lb-active">T</span>
+        <span class="lb lb-j lb-active">E</span>
+        <span class="lb lb-s lb-active">A</span>
+        <span class="lb lb-z lb-active">M</span>
+      </div>
+    </header>
+
+    <main class="entry-main">
+      <div class="entry-name-wrap">
+        <label class="entry-label" for="playerName">SEU NOME</label>
+        <input type="text" id="playerName" maxlength="16" placeholder="JOGADOR_1" autocomplete="off" spellcheck="false">
+      </div>
+
+      <div id="serverStatus" class="server-status hidden"></div>
+
+      <div class="entry-panels">
+        <!-- CREATE ROOM -->
+        <section class="entry-panel">
+          <h2 class="panel-title">CRIAR SALA TAG TEAM</h2>
+
+          <div class="field-group">
+            <label>MODO DE JOGO</label>
+            <div class="mode-grid">
+              <button class="mode-btn active" data-mode="ffa">
+                <span class="mode-icon">⚔</span>
+                <span class="mode-name">FREE FOR ALL</span>
+                <span class="mode-desc">Até 6 duplas</span>
+              </button>
+              <button class="mode-btn" data-mode="1v1">
+                <span class="mode-icon">🤺</span>
+                <span class="mode-name">1v1</span>
+                <span class="mode-desc">Duelo de duplas</span>
+              </button>
+              <button class="mode-btn" data-mode="2v2">
+                <span class="mode-icon">🛡</span>
+                <span class="mode-name">2v2</span>
+                <span class="mode-desc">2 Times</span>
+              </button>
+            </div>
+          </div>
+
+          <button class="start-btn" id="createBtn">▶ CRIAR SALA</button>
+        </section>
+
+        <!-- JOIN ROOM -->
+        <section class="entry-panel entry-panel-join">
+          <h2 class="panel-title">ENTRAR EM SALA</h2>
+
+          <div class="field-group">
+            <label for="roomCode">CÓDIGO DA SALA</label>
+            <input type="text" id="roomCode" maxlength="6" placeholder="XKQT42"
+              autocomplete="off" spellcheck="false"
+              style="text-transform:uppercase;letter-spacing:6px;font-size:20px;text-align:center">
+          </div>
+
+          <button class="start-btn join-btn" id="joinBtn">→ ENTRAR NA SALA</button>
+
+          <div class="entry-divider"></div>
+
+          <div class="entry-info">
+            <h3 class="panel-title" style="font-size:9px">COMO FUNCIONA O TAG TEAM</h3>
+            <p class="entry-info-text">Cada slot é controlado por uma dupla: um jogador move as peças e coleta bombas, enquanto o parceiro cuida dos ataques.</p>
+            <p class="entry-info-text">O parceiro pode jogar no celular! Após criar a sala, você receberá um link para convidar seu bombardeiro.</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="entry-error hidden" id="entryError"></div>
+    </main>
+  </div>
+
+  <script src="../js/i18n.js"></script>
+  <script src="../js/narrator.js"></script>
+  <script src="../js/keybinds.js"></script>
+  <script src="../js/mock-server.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="../js/socket-client.js"></script>
+  <script>
+    const nameInput = document.getElementById('playerName');
+    const saved = localStorage.getItem('tetrinet_player_name');
+    if (saved) nameInput.value = saved;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlRoom = urlParams.get('sala');
+    if (urlRoom) document.getElementById('roomCode').value = urlRoom.toUpperCase();
+
+    let selectedMode = 'ffa';
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedMode = btn.dataset.mode;
+      });
+    });
+
+    function getPlayerName() {
+      return (nameInput.value.trim() || 'JOGADOR_1').toUpperCase().slice(0,16);
+    }
+
+    // ===== SERVER STATUS INDICATOR =====
+    const statusEl  = document.getElementById('serverStatus');
+    const createBtn = document.getElementById('createBtn');
+    const joinBtn   = document.getElementById('joinBtn');
+
+    if (typeof SERVER_URL !== 'undefined' && SERVER_URL && socketClient) {
+      const sock = socketClient.socket;
+      let onlineTimer = null;
+
+      function setStatus(state, text) {
+        statusEl.className = 'server-status server-status--' + state;
+        statusEl.textContent = text;
+        if (onlineTimer) { clearTimeout(onlineTimer); onlineTimer = null; }
+      }
+
+      function setButtons(enabled) {
+        createBtn.disabled = !enabled;
+        joinBtn.disabled   = !enabled;
+      }
+
+      setButtons(false);
+      setStatus('connecting', 'CONECTANDO AO SERVIDOR...');
+
+      sock.on('connect', () => {
+        setStatus('online', 'SERVIDOR ONLINE');
+        setButtons(true);
+        onlineTimer = setTimeout(() => {
+          statusEl.classList.add('fade-out');
+          onlineTimer = setTimeout(() => statusEl.classList.add('hidden'), 700);
+        }, 2500);
+      });
+
+      sock.on('connect_error', () => { setStatus('retrying', 'AGUARDANDO SERVIDOR...'); setButtons(false); });
+      sock.on('disconnect',    () => { setStatus('connecting', 'RECONECTANDO...');       setButtons(false); });
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('entryError');
+      el.textContent = '⚠ ' + msg;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    server.on('room_created', ({ code, playerId }) => {
+      const name = getPlayerName();
+      localStorage.setItem('tetrinet_player_name', name);
+      sessionStorage.setItem('tetrinet_lobby', JSON.stringify({
+        code, isHost: true, playerName: name,
+        mode: selectedMode,
+        playerId,
+        isTagTeam: true,
+      }));
+      window.location.href = 'lobby.html';
+    });
+
+    server.on('room_joined', ({ code, playerId }) => {
+      const name = getPlayerName();
+      localStorage.setItem('tetrinet_player_name', name);
+      sessionStorage.setItem('tetrinet_lobby', JSON.stringify({
+        code, isHost: false, playerName: name,
+        playerId,
+        isTagTeam: true,
+      }));
+      window.location.href = 'lobby.html';
+    });
+
+    server.on('error_msg', ({ message }) => showError(message));
+
+    document.getElementById('createBtn').addEventListener('click', () => {
+      const name = getPlayerName();
+      if (!name) { showError('Digite seu nome!'); return; }
+      server.createRoom({ playerName: name, mode: selectedMode });
+    });
+
+    document.getElementById('joinBtn').addEventListener('click', () => {
+      const name = getPlayerName();
+      const code = document.getElementById('roomCode').value.trim().toUpperCase();
+      if (!name) { showError('Digite seu nome!'); return; }
+      if (code.length !== 6) { showError('O código deve ter 6 caracteres.'); return; }
+      server.joinRoom({ code, playerName: name });
+    });
+
+    document.getElementById('roomCode').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('joinBtn').click();
+    });
+
+    document.getElementById('roomCode').addEventListener('input', e => {
+      e.target.value = e.target.value.toUpperCase();
+    });
+  </script>
+</body>
+</html>
