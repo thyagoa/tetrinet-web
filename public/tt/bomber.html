@@ -370,13 +370,12 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
     // ===== URL PARAMS =====
-    const params   = new URLSearchParams(window.location.search);
-    const ROOM     = (params.get('room') || '').toUpperCase();
-    const SLOT_IDX = parseInt(params.get('slot') ?? '-1');
-    const BOMBER_NAME = localStorage.getItem('tetrinet_player_name') || 'BOMBARDEIRO';
+    // Token opaco lido do pathname (/b/:token)
+    const BOMBER_TOKEN = window.location.pathname.split('/').pop() || '';
+    const BOMBER_NAME  = localStorage.getItem('tetrinet_player_name') || 'BOMBARDEIRO';
 
-    document.getElementById('waitingRoom').textContent = ROOM || '—';
-    document.getElementById('waitingSlot').textContent = SLOT_IDX >= 0 ? (SLOT_IDX + 1) : '—';
+    document.getElementById('waitingRoom').textContent = '—';
+    document.getElementById('waitingSlot').textContent = '—';
 
     // ===== CONSTANTS =====
     const COLS = 12, ROWS = 22;
@@ -564,8 +563,7 @@
       socket.on('connect', () => {
         setStatus('connecting', 'AGUARDANDO...');
         socket.emit('bomber_join', {
-          roomCode:   ROOM,
-          slotIdx:    SLOT_IDX,
+          token:      BOMBER_TOKEN,
           bomberName: BOMBER_NAME,
         });
       });
@@ -661,7 +659,7 @@
     document.getElementById('fireBtn').addEventListener('click', fireBomb);
 
     // ===== INIT =====
-    if (!ROOM || SLOT_IDX < 0) {
+    if (!BOMBER_TOKEN || BOMBER_TOKEN.length < 8) {
       setStatus('error', 'LINK INVÁLIDO');
       document.getElementById('waitingText').innerHTML =
         'Link inválido.<br>Peça ao seu parceiro<br>um novo link.';

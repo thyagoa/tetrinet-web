@@ -72,6 +72,11 @@
     .bim-actions .overlay-btn { font-size: 10px; padding: 10px 16px; width: 100%; letter-spacing: 1px; }
     .bim-share-btn { background: var(--accent2); color: #fff; border: none; }
     .bim-share-btn:hover { background: #fff; color: var(--accent2); box-shadow: 0 0 20px var(--accent2); }
+    .bim-loading {
+      font-family: var(--font-pixel); font-size: 8px;
+      color: var(--text2); letter-spacing: 2px;
+      padding: 20px; width: 180px; text-align: center;
+    }
   </style>
 </head>
 <body class="lobby-page">
@@ -237,22 +242,28 @@
       return -1;
     }
 
-    // ===== BUILD BOMBER INVITE URL =====
-    function bomberInviteUrl(slotIdx) {
-      const base = window.location.href.replace('lobby.html', 'bomber.html').split('?')[0];
-      return `${base}?room=${code}&slot=${slotIdx}`;
-    }
-
     // ===== BOMBER INVITE MODAL =====
     let _bimUrl = '';
 
-    function openBomberInviteModal(slotIdx, playerName) {
-      _bimUrl = bomberInviteUrl(slotIdx);
+    async function openBomberInviteModal(slotIdx, playerName) {
+      // Abrir modal com loading enquanto aguarda token do servidor
       document.getElementById('bimSubtitle').textContent =
         playerName.toUpperCase() + '  —  SLOT ' + (slotIdx + 1);
+      document.getElementById('bimQrCode').innerHTML =
+        '<div class="bim-loading">GERANDO LINK...</div>';
+      document.getElementById('bimShareBtn').classList.add('hidden');
+      document.getElementById('bomberInviteModal').classList.remove('hidden');
+
+      // Solicitar token ao servidor e aguardar resposta
+      const token = await new Promise(resolve => {
+        socketClient.socket.once('bomber_token_ready', ({ token }) => resolve(token));
+        socketClient.socket.emit('generate_bomber_token', { slotIdx });
+      });
+
+      _bimUrl = `${location.origin}/b/${token}`;
 
       const qrEl = document.getElementById('bimQrCode');
-      qrEl.innerHTML = ''; // qrcodejs sempre appenda, nunca substitui
+      qrEl.innerHTML = '';
       new QRCode(qrEl, {
         text: _bimUrl, width: 180, height: 180,
         colorDark: '#00e5ff', colorLight: '#0a0a0f',
@@ -260,7 +271,6 @@
       });
 
       document.getElementById('bimShareBtn').classList.toggle('hidden', !navigator.share);
-      document.getElementById('bomberInviteModal').classList.remove('hidden');
     }
 
     function closeBomberInviteModal() {

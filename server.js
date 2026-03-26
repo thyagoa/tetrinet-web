@@ -11,12 +11,26 @@ const io     = new Server(server, {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Rota de convite do Bombardeiro — /b/:token serve bomber.html (token opaco)
+app.get('/b/:token', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'tt', 'bomber.html'));
+});
+
 // ===== ROOM STORE =====
 const rooms = {}; // code → room
 
 // ===== BOMBER LINKS (Tag Team) =====
 const bomberLinks   = {}; // moverId → bomberSocketId
 const moverOfBomber = {}; // bomberSocketId → moverId
+
+// ===== BOMBER INVITE TOKENS =====
+const bomberTokens = {}; // token → { roomCode, slotIdx, expires }
+setInterval(() => {
+  const now = Date.now();
+  for (const t in bomberTokens) {
+    if (bomberTokens[t].expires < now) delete bomberTokens[t];
+  }
+}, 5 * 60 * 1000);
 
 const BOT_NAMES_POOL = ['ALPHA','BETA','GAMMA','DELTA','EPSILON','ZETA'];
 
@@ -304,8 +318,31 @@ io.on('connection', socket => {
     socket.to(code).emit('game_over', { winners, finalScores });
   });
 
+  // ----- GENERATE BOMBER TOKEN (Tag Team) -----
+  socket.on('generate_bomber_token', ({ slotIdx }) => {
+    const code = socket.data.roomCode;
+    const room = rooms[code];
+    if (!room) { socket.emit('error_msg', { message: 'Sala não encontrada.' }); return; }
+    const slot = (room.slots || [])[slotIdx];
+    if (!slot) { socket.emit('error_msg', { message: 'Slot inválido.' }); return; }
+
+    const token = Math.random().toString(36).substr(2, 8)
+                + Math.random().toString(36).substr(2, 8);
+    bomberTokens[token] = { roomCode: code, slotIdx, expires: Date.now() + 10 * 60 * 1000 };
+    socket.emit('bomber_token_ready', { token });
+  });
+
   // ----- BOMBER JOIN (Tag Team) -----
-  socket.on('bomber_join', ({ roomCode, slotIdx, bomberName }) => {
+  socket.on('bomber_join', ({ token, bomberName }) => {
+    const entry = bomberTokens[token];
+    if (!entry) { socket.emit('error_msg', { message: 'Link inválido ou expirado.' }); return; }
+    if (entry.expires < Date.now()) {
+      delete bomberTokens[token];
+      socket.emit('error_msg', { message: 'Link expirado. Peça um novo convite.' }); return;
+    }
+    const { roomCode, slotIdx } = entry;
+    delete bomberTokens[token]; // uso único
+
     const room = rooms[roomCode];
     if (!room) { socket.emit('error_msg', { message: 'Sala não encontrada.' }); return; }
 
