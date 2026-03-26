@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TetriNET: Tag Team — Partida</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    /* Tag Team badge no header */
+    .tt-badge {
+      font-family: var(--font-pixel);
+      font-size: 7px;
+      color: #000;
+      background: var(--piece-L);
+      padding: 3px 7px;
+      border-radius: 3px;
+      letter-spacing: 1px;
+      text-shadow: none;
+    }
+
+    /* Painel do Bombardeiro (substitui o painel de bombas) */
+    .bomber-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .bomber-panel-status {
+      font-family: var(--font-pixel);
+      font-size: 7px;
+      letter-spacing: 1px;
+      padding: 5px 8px;
+      border-radius: 3px;
+      text-align: center;
+      background: var(--bg3);
+      color: var(--text2);
+    }
+    .bomber-panel-status.linked { background: #00391a; color: var(--piece-S); }
+    .bomber-panel-inv-label {
+      font-family: var(--font-pixel);
+      font-size: 6px;
+      color: var(--text2);
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+    /* Inventory shown read-only (bomber controls it) */
+    .bomber-inv-display {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .bomber-inv-slot {
+      font-family: var(--font-pixel);
+      font-size: 11px;
+      padding: 4px 6px;
+      border-radius: 3px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body class="game-page">
+  <div class="scanlines"></div>
+
+  <header class="game-header">
+    <span class="game-logo">TETRI<span style="color:var(--accent2)">NET</span></span>
+    <span class="tt-badge">TAG TEAM</span>
+    <span class="game-mode-label" id="modeLabel">FREE FOR ALL</span>
+    <span class="game-timer" id="gameTimer">00:00</span>
+    <button class="sfx-toggle" id="sfxToggle" title="Som (M)">🔊</button>
+    <button class="mic-btn hidden" id="micBtn" title="Microfone">🎤</button>
+  </header>
+
+  <!-- Left HUD -->
+  <aside class="hud-left">
+    <div class="hud-section">
+      <div class="hud-label" data-i18n="game.next">PRÓXIMA</div>
+      <canvas id="nextCanvas"></canvas>
+    </div>
+    <div class="hud-section">
+      <div class="hud-label" data-i18n="game.score">SCORE</div>
+      <div class="hud-value" id="scoreDisplay">0</div>
+    </div>
+    <div class="hud-section">
+      <div class="hud-label" data-i18n="game.lines">LINHAS</div>
+      <div class="hud-value lines" id="linesDisplay">0</div>
+    </div>
+    <div class="hud-section">
+      <div class="hud-label" data-i18n="game.level">NÍVEL</div>
+      <div class="hud-value level" id="levelDisplay">1</div>
+    </div>
+    <div class="hud-section hud-glossary">
+      <div class="hud-label" data-i18n="game.glossary">GLOSSÁRIO</div>
+      <div class="glossary-list" id="glossaryList"></div>
+    </div>
+  </aside>
+
+  <!-- Main Field -->
+  <main class="field-area">
+    <div class="field-inner">
+      <canvas id="gameCanvas"></canvas>
+      <!-- Next bomb panel hidden — bomber handles bombs -->
+      <div class="next-bomb-panel" id="nextBombPanel" style="display:none"></div>
+      <div class="event-log" id="eventLog"></div>
+    </div>
+  </main>
+
+  <!-- Right HUD -->
+  <aside class="hud-right">
+    <div class="hud-section" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+      <div class="hud-label" data-i18n="game.players">JOGADORES</div>
+      <div class="players-panel" id="playersPanel"></div>
+    </div>
+
+    <!-- Bomber status (replaces bomb inventory) -->
+    <div class="hud-section">
+      <div class="hud-label">🎯 BOMBARDEIRO</div>
+      <div class="bomber-panel">
+        <div class="bomber-panel-status" id="bomberStatus">AGUARDANDO...</div>
+        <div class="bomber-panel-inv-label">INVENTÁRIO</div>
+        <!-- Read-only mirror of player.inventory, updated via IS_TAG_TEAM hook -->
+        <div class="bomber-inv-display" id="bomberInvDisplay"></div>
+      </div>
+    </div>
+
+    <!-- Hidden original bomb inventory (still needed by ui.js internally) -->
+    <div style="display:none">
+      <div class="specials-inventory" id="specialsInventory"></div>
+    </div>
+  </aside>
+
+  <!-- Countdown overlay -->
+  <div class="overlay" id="countdownOverlay">
+    <div class="overlay-sub" data-i18n="game.countdown">PARTIDA COMEÇA EM</div>
+    <div class="countdown-num" id="countdownNum">3</div>
+  </div>
+
+  <!-- Game over overlay -->
+  <div class="overlay hidden" id="gameOverOverlay">
+    <div class="overlay-title" id="gameOverTitle" data-i18n="game.gameOver">FIM DE JOGO</div>
+    <div class="overlay-winner" id="winnerText"></div>
+    <div class="overlay-sub" id="winnerSub" style="margin-top:4px"></div>
+
+    <div class="scoreboard" id="scoreboard">
+      <table class="scoreboard-table">
+        <thead>
+          <tr>
+            <th data-i18n="game.sbRank">#</th>
+            <th data-i18n="game.sbPlayer">JOGADOR</th>
+            <th id="sbTeamHeader" class="hidden" data-i18n="game.sbTeam">TIME</th>
+            <th data-i18n="game.sbScore">SCORE</th>
+            <th data-i18n="game.sbLines">LINHAS</th>
+            <th data-i18n="game.sbLevel">NÍVEL</th>
+          </tr>
+        </thead>
+        <tbody id="scoreboardBody"></tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;justify-content:center">
+      <button class="overlay-btn secondary" id="lobbyBtn" data-i18n="game.backLobby">⬅ VOLTAR AO LOBBY</button>
+      <button class="overlay-btn secondary" id="menuBtn" data-i18n="game.mainMenu">✕ MENU PRINCIPAL</button>
+    </div>
+  </div>
+
+  <!-- Dead overlay -->
+  <div class="overlay hidden" id="deadOverlay">
+    <div class="overlay-title" style="color:var(--danger)" data-i18n="game.youDied">VOCÊ MORREU</div>
+    <div class="overlay-sub" data-i18n="game.waitingEnd">Aguardando fim da partida...</div>
+    <div style="display:flex;gap:12px;margin-top:20px">
+      <button class="overlay-btn" id="watchBtn" data-i18n="game.watch">👁 ASSISTIR</button>
+      <button class="overlay-btn secondary" id="leaveBtn" data-i18n="game.leaveMatch">✕ SAIR</button>
+    </div>
+  </div>
+
+  <!-- Scripts: same as game.html but with ../js/ prefix -->
+  <!-- IS_TAG_TEAM must be set BEFORE ui.js loads -->
+  <script>window.IS_TAG_TEAM = true;</script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/narrator.js"></script>
+  <script src="../js/keybinds.js"></script>
+  <script src="../js/game.js"></script>
+  <script src="../js/bot.js"></script>
+  <script src="../js/bomb-icons.js"></script>
+  <script src="../js/render.js"></script>
+  <script src="../js/sounds.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="../js/socket-client.js"></script>
+  <script src="../js/voice.js"></script>
+  <script src="../js/ui.js"></script>
+  <script>
+    // ===== TAG TEAM PATCHES (run after ui.js) =====
+
+    // 1. Redirect lobby/menu buttons to tt/ pages
+    document.getElementById('lobbyBtn')?.addEventListener('click', () => {
+      window.location.href = 'lobby.html';   // tt/lobby.html
+    }, true);
+    document.getElementById('menuBtn')?.addEventListener('click', () => {
+      window.location.href = 'index.html';   // tt/index.html
+    }, true);
+
+    // 2. Mirror inventory to bomber panel every 500ms
+    //    (until server bomber_join is implemented, shows read-only state)
+    setInterval(() => {
+      if (typeof player === 'undefined') return;
+      const inv    = player.inventory || [];
+      const COLORS = {
+        a:'#ff1744', c:'#00e676', b:'#40c4ff', r:'#ff9100',
+        o:'#ff6d00', q:'#e040fb', g:'#64dd17', s:'#00e5ff', n:'#ffffff',
+      };
+      const display = document.getElementById('bomberInvDisplay');
+      if (!display) return;
+      display.innerHTML = '';
+      if (inv.length === 0) {
+        display.innerHTML = '<span style="font-family:var(--font-mono);font-size:10px;color:var(--text2)">vazio</span>';
+      } else {
+        inv.forEach(sp => {
+          const el = document.createElement('span');
+          el.className = 'bomber-inv-slot';
+          el.textContent = sp.toUpperCase();
+          el.style.color = COLORS[sp] || '#fff';
+          el.style.borderColor = (COLORS[sp] || '#fff') + '44';
+          display.appendChild(el);
+        });
+      }
+
+      // 3. Emit inventory_update to server when IS_TAG_TEAM
+      if (typeof socketClient !== 'undefined' && socketClient &&
+          typeof MY_PLAYER_ID !== 'undefined') {
+        socketClient.socket?.emit('inventory_update_tt', {
+          roomCode: typeof ROOM_CODE !== 'undefined' ? ROOM_CODE : '',
+          moverId:  MY_PLAYER_ID,
+          inventory: inv,
+        });
+      }
+    }, 300);
+  </script>
+</body>
+</html>
