@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TetriNET: Tag Team — Lobby</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .logo-tag-sm {
+      font-family: var(--font-pixel);
+      font-size: 8px;
+      color: var(--piece-L);
+      letter-spacing: 2px;
+      text-shadow: 0 0 8px var(--piece-L);
+    }
+    /* Bomber invite button inside slot card */
+    .slot-bomber-btn {
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      padding: 4px 6px;
+      font-family: var(--font-pixel);
+      font-size: 7px;
+      letter-spacing: 1px;
+      background: transparent;
+      border: 1px solid var(--piece-L);
+      color: var(--piece-L);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .slot-bomber-btn:hover { background: var(--piece-L); color: #000; }
+    .slot-bomber-linked {
+      display: block;
+      margin-top: 6px;
+      font-family: var(--font-pixel);
+      font-size: 7px;
+      color: var(--piece-S);
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body class="lobby-page">
+  <div class="scanlines"></div>
+
+  <div class="lobby-container lobby-room-container">
+    <header class="lobby-header lobby-header-compact">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <h1 class="logo logo-sm">TETRI<span>NET</span></h1>
+        <span class="logo-tag-sm">: TAG TEAM</span>
+      </div>
+      <div class="room-code-display">
+        <span class="rc-label">CÓDIGO DA SALA</span>
+        <span class="rc-code" id="roomCodeDisplay">——————</span>
+        <button class="rc-copy" id="copyCodeBtn">⧉ COPIAR</button>
+        <button class="rc-share" id="shareLinkBtn">🔗 LINK</button>
+      </div>
+      <button class="back-btn" id="backBtn">← SAIR</button>
+      <button class="mic-btn hidden" id="micBtn" title="Microfone">🎤</button>
+    </header>
+
+    <main class="lobby-room-main">
+
+      <!-- LEFT: players + config + start -->
+      <div class="lobby-left">
+
+        <!-- PLAYERS -->
+        <section class="lob-panel">
+          <div class="lob-panel-header">
+            <span class="panel-title" style="margin:0;border:none;padding:0">JOGADORES</span>
+            <span class="players-count" id="playersCount">0 / 6</span>
+          </div>
+          <div class="players-list" id="playersList"></div>
+
+          <!-- ADD BOT (host only) -->
+          <div class="add-bot-wrap" id="addBotWrap">
+            <div class="bot-diff-inline">
+              <span class="bot-diff-label">Dificuldade:</span>
+              <div class="diff-btns diff-btns-sm" id="botDiffBtns">
+                <button class="diff-btn" data-diff="1">FÁCIL</button>
+                <button class="diff-btn active" data-diff="2">MÉDIO</button>
+                <button class="diff-btn" data-diff="3">DIFÍCIL</button>
+              </div>
+            </div>
+            <button class="add-bot-btn" id="addBotBtn">+ ADICIONAR BOT</button>
+          </div>
+        </section>
+
+        <!-- CONFIG (host only) -->
+        <section class="lob-panel" id="configPanel">
+          <div class="panel-title" style="margin-bottom:14px">CONFIGURAÇÕES</div>
+          <div class="field-group" style="margin-bottom:0">
+            <label style="font-size:9px">MODO DE JOGO</label>
+            <div class="mode-grid mode-grid-sm" id="configModeGrid">
+              <button class="mode-btn active" data-mode="ffa"><span class="mode-name" style="font-size:7px">FREE FOR ALL</span></button>
+              <button class="mode-btn" data-mode="1v1"><span class="mode-name" style="font-size:7px">1v1</span></button>
+              <button class="mode-btn" data-mode="2v2"><span class="mode-name" style="font-size:7px">2v2</span></button>
+            </div>
+          </div>
+        </section>
+
+        <!-- START (host only) -->
+        <button class="start-btn" id="startBtn" style="display:none">▶ INICIAR PARTIDA</button>
+
+        <!-- WAITING (non-host) -->
+        <div class="waiting-msg" id="waitingMsg" style="display:none">
+          <span class="waiting-dot"></span>
+          <span>Aguardando o host iniciar...</span>
+        </div>
+      </div>
+
+      <!-- RIGHT: slots + chat -->
+      <div class="lobby-right">
+
+        <!-- SLOTS / TEAMS -->
+        <section class="lob-panel lob-slots-panel">
+          <div class="panel-title" style="margin-bottom:12px">ESCOLHA SEU LUGAR</div>
+          <div class="slots-grid" id="slotsGrid"></div>
+          <div class="slots-hint">Clique num slot vazio para ocupá-lo. Quem não escolher será alocado automaticamente.</div>
+        </section>
+
+        <!-- CHAT -->
+        <section class="lob-panel lob-chat-panel">
+          <div class="panel-title" style="margin-bottom:12px">CHAT DA SALA</div>
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="chat-input-wrap">
+            <input type="text" id="chatInput" maxlength="120" placeholder="Digite uma mensagem..." autocomplete="off" spellcheck="false">
+            <button class="chat-send-btn" id="chatSendBtn">➤</button>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <div class="copy-toast hidden" id="copyToast"></div>
+
+  <script src="../js/i18n.js"></script>
+  <script src="../js/mock-server.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="../js/socket-client.js"></script>
+  <script src="../js/voice.js"></script>
+  <script>
+    // ===== STATE =====
+    const lobbyData = JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}');
+    if (!lobbyData.code) { window.location.href = 'index.html'; }
+
+    const { code, isHost, playerName, mode: initMode, botDifficulty: initDiff } = lobbyData;
+
+    let currentRoom  = null;
+    let selectedDiff = initDiff || 2;
+    let selectedMode = initMode || 'ffa';
+
+    // bomber links: slotIdx → socket.id (populated when bomber joins)
+    const bomberLinks = {}; // slotIdx → { name, socketId } — future use
+
+    // slots[slotIndex] = { playerId, playerName, isBot } or null
+    let slots = [];
+
+    // ===== SLOT STRUCTURE (Tag Team: FFA/1v1/2v2 only) =====
+    const MODE_SLOTS = {
+      ffa:   { total:6, teams:[ {label:'',color:'#7c4dff',size:6} ] },
+      '1v1': { total:2, teams:[ {label:'TIME A',color:'#2979ff',size:1}, {label:'TIME B',color:'#ff1744',size:1} ] },
+      '2v2': { total:4, teams:[ {label:'TIME A',color:'#2979ff',size:2}, {label:'TIME B',color:'#ff1744',size:2} ] },
+    };
+
+    const LOBBY_SIZE = 6;
+    function gameSlotCount(mode) { return MODE_SLOTS[mode]?.total ?? 6; }
+
+    function initSlots(mode) {
+      slots = Array(LOBBY_SIZE).fill(null);
+    }
+
+    function slotTeamOf(slotIdx, mode) {
+      const cfg = MODE_SLOTS[mode] || MODE_SLOTS.ffa;
+      let offset = 0;
+      for (let t = 0; t < cfg.teams.length; t++) {
+        if (slotIdx < offset + cfg.teams[t].size) return t;
+        offset += cfg.teams[t].size;
+      }
+      return -1;
+    }
+
+    // ===== BUILD BOMBER INVITE URL =====
+    function bomberInviteUrl(slotIdx) {
+      const base = window.location.href.replace('lobby.html', 'bomber.html').split('?')[0];
+      return `${base}?room=${code}&slot=${slotIdx}`;
+    }
+
+    // ===== RENDER SLOTS =====
+    function buildSlotCard(idx, color) {
+      const occupant = slots[idx];
+      const isMe     = occupant && occupant.playerId === server.playerId;
+      const mySlot   = slots.findIndex(sl => sl && sl.playerId === server.playerId);
+      const isEmpty  = !occupant;
+
+      const slot = document.createElement('div');
+      slot.className = 'slot-card'
+        + (isEmpty ? ' slot-empty' : '')
+        + (isMe ? ' slot-me' : '')
+        + (occupant?.isBot ? ' slot-bot' : '');
+      if (color) slot.style.setProperty('--tc', color);
+      if (occupant) slot.dataset.id = occupant.playerId;
+
+      if (occupant) {
+        let icon;
+        if (occupant.isSpectator) {
+          icon = '👁';
+        } else if (occupant.isBot) {
+          const botDiff = currentRoom?.players.find(p => p.id === occupant.playerId)?.difficulty || 2;
+          icon = makeBotIconSVG(botDiff, 20);
+        } else {
+          icon = '👤';
+        }
+
+        const isLinked = !!bomberLinks[idx];
+
+        slot.innerHTML = `
+          <span class="slot-icon">${icon}</span>
+          <span class="slot-name">${occupant.playerName}</span>
+          ${isMe ? `<span class="slot-you">VOCÊ</span>` : ''}
+        `;
+
+        // Bomber invite — só para slots de jogo com jogador real
+        if (!occupant.isBot && !occupant.isSpectator) {
+          if (isLinked) {
+            const linked = document.createElement('span');
+            linked.className = 'slot-bomber-linked';
+            linked.textContent = '🎯 BOMBARDEIRO ✓';
+            slot.appendChild(linked);
+          } else {
+            const inviteBtn = document.createElement('button');
+            inviteBtn.className = 'slot-bomber-btn';
+            inviteBtn.textContent = '🎯 CONVIDAR BOMBARDEIRO';
+            inviteBtn.addEventListener('click', e => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(bomberInviteUrl(idx))
+                .then(() => showToast('Link do bombardeiro copiado!'));
+            });
+            slot.appendChild(inviteBtn);
+          }
+        }
+
+      } else {
+        slot.innerHTML = `
+          <span class="slot-icon">+</span>
+          <span class="slot-name slot-empty-text">SLOT VAZIO</span>
+        `;
+        if (mySlot === -1) {
+          slot.classList.add('slot-clickable');
+          slot.addEventListener('click', () => occupySlot(idx));
+        }
+      }
+
+      if (isMe) {
+        slot.style.cursor = 'pointer';
+        slot.title = 'Clique para sair do slot';
+        slot.addEventListener('click', () => vacateSlot(idx));
+      }
+
+      return slot;
+    }
+
+    function renderSlots() {
+      const grid     = document.getElementById('slotsGrid');
+      grid.innerHTML = '';
+      const cfg      = MODE_SLOTS[selectedMode] || MODE_SLOTS.ffa;
+      const isFfa    = selectedMode === 'ffa';
+      const gameTotal = gameSlotCount(selectedMode);
+      let slotIdx    = 0;
+
+      cfg.teams.forEach(team => {
+        const teamWrap = document.createElement('div');
+        teamWrap.className = 'slots-team';
+
+        if (!isFfa) {
+          const label = document.createElement('div');
+          label.className = 'slots-team-label';
+          label.textContent = team.label;
+          label.style.color = team.color;
+          label.style.borderColor = team.color + '44';
+          teamWrap.appendChild(label);
+        }
+
+        const teamSlots = document.createElement('div');
+        teamSlots.className = 'slots-team-slots';
+
+        for (let s = 0; s < team.size; s++) {
+          teamSlots.appendChild(buildSlotCard(slotIdx, team.color));
+          slotIdx++;
+        }
+
+        teamWrap.appendChild(teamSlots);
+        grid.appendChild(teamWrap);
+      });
+
+      // Spectator slots
+      const spectatorCount = LOBBY_SIZE - gameTotal;
+      if (spectatorCount > 0) {
+        const specWrap = document.createElement('div');
+        specWrap.className = 'slots-team';
+
+        const specLabel = document.createElement('div');
+        specLabel.className = 'slots-team-label slots-spectator-label';
+        specLabel.textContent = 'ESPECTADORES';
+        specWrap.appendChild(specLabel);
+
+        const specSlots = document.createElement('div');
+        specSlots.className = 'slots-team-slots';
+
+        for (let i = gameTotal; i < LOBBY_SIZE; i++) {
+          const card = buildSlotCard(i, null);
+          card.classList.add('slot-spectator');
+          specSlots.appendChild(card);
+        }
+
+        specWrap.appendChild(specSlots);
+        grid.appendChild(specWrap);
+      }
+    }
+
+    function occupySlot(idx) {
+      const mySlot = slots.findIndex(sl => sl && sl.playerId === server.playerId);
+      if (mySlot !== -1) slots[mySlot] = null;
+      const isSpec = idx >= gameSlotCount(selectedMode);
+      slots[idx] = { playerId: server.playerId, playerName, isBot: false, isSpectator: isSpec };
+      renderSlots();
+      if (socketClient) socketClient.sendSlotUpdate(slots);
+    }
+
+    function vacateSlot(idx) {
+      slots[idx] = null;
+      renderSlots();
+      if (socketClient) socketClient.sendSlotUpdate(slots);
+    }
+
+    function assignBotToFirstEmpty(bot) {
+      const gameTotal = gameSlotCount(selectedMode);
+      const idx = slots.findIndex((s, i) => s === null && i < gameTotal);
+      if (idx !== -1) slots[idx] = { playerId: bot.id, playerName: bot.name, isBot: true };
+    }
+
+    function removeBotFromSlots(botId) {
+      const idx = slots.findIndex(s => s && s.playerId === botId);
+      if (idx !== -1) slots[idx] = null;
+    }
+
+    function finalizeSlots(players) {
+      const gameTotal  = gameSlotCount(selectedMode);
+      const assigned   = new Set(slots.filter(Boolean).map(s => s.playerId));
+      const unassignedReal = players.filter(p => !p.isBot && !assigned.has(p.id));
+      const unassignedBots = players.filter(p =>  p.isBot && !assigned.has(p.id));
+
+      const shuffle = arr => { for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; };
+      shuffle(unassignedReal);
+      shuffle(unassignedBots);
+
+      unassignedReal.forEach(p => {
+        let idx = slots.findIndex((s, i) => s === null && i < gameTotal);
+        if (idx === -1) idx = slots.findIndex((s, i) => s === null && i >= gameTotal);
+        if (idx !== -1) {
+          const isSpec = idx >= gameTotal;
+          slots[idx] = { playerId: p.id, playerName: p.name, isBot: false, isSpectator: isSpec };
+        }
+      });
+
+      unassignedBots.forEach(p => {
+        const idx = slots.findIndex((s, i) => s === null && i < gameTotal);
+        if (idx !== -1) slots[idx] = { playerId: p.id, playerName: p.name, isBot: true };
+      });
+    }
+
+    // ===== BOT ICON SVG =====
+    function makeBotIconSVG(difficulty, size = 18) {
+      const c = { 1: '#4caf50', 2: '#ffc107', 3: '#f44336' }[difficulty] || '#888';
+      return `<svg viewBox="0 0 16 16" width="${size}" height="${size}" style="vertical-align:middle;display:inline-block;flex-shrink:0">
+        <rect x="7" y="0" width="2" height="3" rx="1" fill="${c}"/>
+        <rect x="2" y="3" width="12" height="10" rx="2" fill="${c}"/>
+        <rect x="4" y="6" width="3" height="2.5" rx="1" fill="rgba(0,0,0,0.55)"/>
+        <rect x="9" y="6" width="3" height="2.5" rx="1" fill="rgba(0,0,0,0.55)"/>
+        <rect x="5" y="10" width="6" height="1.5" rx="0.75" fill="rgba(0,0,0,0.35)"/>
+      </svg>`;
+    }
+
+    // ===== RENDER PLAYERS LIST =====
+    function renderPlayers(room) {
+      const list  = document.getElementById('playersList');
+      const maxP  = LOBBY_SIZE;
+      const count = room.players.length;
+      document.getElementById('playersCount').textContent = `${count} / ${maxP}`;
+      list.innerHTML = '';
+
+      room.players.forEach(p => {
+        const isMe = p.id === server.playerId;
+        const row  = document.createElement('div');
+        row.className = 'player-row'
+          + (p.isBot ? ' player-row-bot' : '')
+          + (isMe    ? ' player-row-me'  : '');
+        row.dataset.id = p.id;
+
+        const left = document.createElement('div');
+        left.className = 'player-row-left';
+
+        const icon = document.createElement('span');
+        icon.className = 'player-icon';
+        if (p.isBot) {
+          icon.innerHTML = makeBotIconSVG(p.difficulty, 18);
+        } else {
+          icon.textContent = p.isHost ? '👑' : '👤';
+        }
+
+        const name = document.createElement('span');
+        name.className = 'player-name';
+        name.textContent = p.name + (isMe ? ' (você)' : '') + (p.isHost ? ' [HOST]' : '');
+
+        left.appendChild(icon);
+        left.appendChild(name);
+        row.appendChild(left);
+
+        if (isHost && p.isBot) {
+          const rm = document.createElement('button');
+          rm.className = 'remove-bot-btn';
+          rm.textContent = '✕';
+          rm.addEventListener('click', () => {
+            removeBotFromSlots(p.id);
+            server.removeBot({ botId: p.id });
+          });
+          row.appendChild(rm);
+        }
+
+        list.appendChild(row);
+      });
+
+      for (let i = count; i < maxP; i++) {
+        const row = document.createElement('div');
+        row.className = 'player-row player-row-empty';
+        row.innerHTML = `<span class="player-icon">○</span><span class="player-name" style="opacity:0.3">Aguardando jogador...</span>`;
+        list.appendChild(row);
+      }
+    }
+
+    // ===== CHAT =====
+    function addChatMessage(entry) {
+      const msgs   = document.getElementById('chatMessages');
+      const isSystem = entry.isSystem;
+      const isMe   = entry.playerId === server.playerId;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'chat-msg'
+        + (isSystem ? ' chat-msg-system' : '')
+        + (isMe     ? ' chat-msg-me'     : '');
+
+      if (!isSystem) {
+        const header = document.createElement('div');
+        header.className = 'chat-msg-header';
+        header.innerHTML = `<span class="chat-name" ${entry.isBot?'style="color:var(--text2)"':''}>
+          ${entry.isBot ? makeBotIconSVG(currentRoom?.players.find(p=>p.name===entry.playerName)?.difficulty||2, 14)+' ' : ''}${entry.playerName}</span>
+          <span class="chat-time">${entry.time}</span>`;
+        wrap.appendChild(header);
+      }
+
+      const text = document.createElement('div');
+      text.className = 'chat-msg-text';
+      if (isSystem) { text.innerHTML = entry.message; } else { text.textContent = entry.message; }
+      wrap.appendChild(text);
+      msgs.appendChild(wrap);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function addSystemMsg(message) {
+      addChatMessage({ isSystem: true, message, time: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) });
+    }
+
+    function sendChat() {
+      const input = document.getElementById('chatInput');
+      const msg   = input.value.trim();
+      if (!msg) return;
+      input.value = '';
+      server.sendChat({ message: msg, playerName });
+    }
+
+    document.getElementById('chatSendBtn').addEventListener('click', sendChat);
+    document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+
+    // ===== TOAST =====
+    function showToast(msg) {
+      const t = document.getElementById('copyToast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2000);
+    }
+
+    // ===== HEADER BUTTONS =====
+    document.getElementById('roomCodeDisplay').textContent = code;
+
+    document.getElementById('copyCodeBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText(code).then(() => showToast('Código copiado!'));
+    });
+
+    document.getElementById('shareLinkBtn').addEventListener('click', () => {
+      const base = window.location.href.replace('lobby.html','index.html').split('?')[0];
+      navigator.clipboard.writeText(base + '?sala=' + code).then(() => showToast('Link copiado!'));
+    });
+
+    document.getElementById('backBtn').addEventListener('click', () => {
+      voiceManager.destroy();
+      server.leaveRoom();
+      window.location.href = 'index.html';
+    });
+
+    document.getElementById('micBtn').addEventListener('click', () => {
+      const muted = voiceManager.toggleMute();
+      const btn = document.getElementById('micBtn');
+      btn.textContent = muted ? '🔇' : '🎤';
+      btn.classList.toggle('muted', muted);
+    });
+
+    // ===== HOST CONTROLS =====
+    if (isHost) {
+      document.getElementById('startBtn').style.display   = 'block';
+      document.getElementById('addBotWrap').style.display = 'flex';
+      document.getElementById('configPanel').style.display = 'block';
+      document.getElementById('waitingMsg').style.display  = 'none';
+    } else {
+      document.getElementById('addBotWrap').style.display  = 'none';
+      document.getElementById('configPanel').style.display = 'none';
+      document.getElementById('startBtn').style.display    = 'none';
+      document.getElementById('waitingMsg').style.display  = 'flex';
+    }
+
+    document.querySelectorAll('#botDiffBtns .diff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#botDiffBtns .diff-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedDiff = parseInt(btn.dataset.diff);
+      });
+    });
+
+    document.querySelectorAll('#configModeGrid .mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#configModeGrid .mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedMode = btn.dataset.mode;
+
+        const hadBots = currentRoom ? currentRoom.players.some(p => p.isBot) : false;
+        if (currentRoom && hadBots) {
+          currentRoom.players = currentRoom.players.filter(p => !p.isBot);
+          addSystemMsg('Bots removidos ao trocar de modo.');
+        }
+
+        initSlots(selectedMode);
+        renderSlots();
+        addSystemMsg('Modo alterado para ' + selectedMode.toUpperCase());
+        server.updateRoomConfig({ mode: selectedMode, botDifficulty: selectedDiff, clearBots: hadBots });
+      });
+    });
+
+    document.querySelectorAll('#configModeGrid .mode-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === selectedMode);
+    });
+
+    document.getElementById('addBotBtn').addEventListener('click', () => {
+      const gameTotal = gameSlotCount(selectedMode);
+      if (slots.slice(0, gameTotal).every(Boolean)) {
+        addSystemMsg('⚠ Slots de jogo cheios — sem espaço para bot.');
+        return;
+      }
+      server.addBot({ difficulty: selectedDiff });
+    });
+
+    document.getElementById('startBtn').addEventListener('click', () => {
+      if (!currentRoom) return;
+      finalizeSlots(currentRoom.players);
+
+      const slotPlayers = slots
+        .filter(Boolean)
+        .map(s => currentRoom.players.find(p => p.id === s.playerId))
+        .filter(Boolean);
+
+      const config = {
+        playerName,
+        mode: selectedMode,
+        botCount: currentRoom.players.filter(p => p.isBot).length,
+        botDifficulty: selectedDiff,
+        roomCode: code,
+        players: slotPlayers,
+        slots,
+        isTagTeam: true,
+      };
+
+      if (socketClient) {
+        socketClient.startGame(slots);
+      } else {
+        sessionStorage.setItem('gameConfig', JSON.stringify(config));
+        window.location.href = 'game.html';
+      }
+    });
+
+    // ===== SERVER EVENTS =====
+    server.on('room_updated', ({ room }) => {
+      currentRoom = room;
+      if (room.slots && room.slots.length > 0) slots = room.slots;
+      renderPlayers(room);
+      renderSlots();
+    });
+
+    server.on('player_joined', ({ player }) => {
+      if (!currentRoom) return;
+      if (!currentRoom.players.find(p => p.id === player.id)) currentRoom.players.push(player);
+      if (player.isBot) assignBotToFirstEmpty(player);
+      renderPlayers(currentRoom);
+      renderSlots();
+      addSystemMsg((player.isBot ? makeBotIconSVG(player.difficulty, 14)+' ' : '') + player.name + ' entrou na sala.');
+    });
+
+    server.on('player_left', ({ playerId }) => {
+      voiceManager.disconnectPeer(playerId);
+      if (!currentRoom) return;
+      const leaving = currentRoom.players.find(p => p.id === playerId);
+      currentRoom.players = currentRoom.players.filter(p => p.id !== playerId);
+      removeBotFromSlots(playerId);
+      renderPlayers(currentRoom);
+      renderSlots();
+      if (leaving) addSystemMsg(leaving.name + ' saiu da sala.');
+    });
+
+    server.on('chat_message', entry => addChatMessage(entry));
+    server.on('error_msg', ({ message }) => addSystemMsg('⚠ ' + message));
+
+    server.on('game_starting', ({ config }) => {
+      voiceManager.destroy();
+      const ttConfig = Object.assign({}, config, { isTagTeam: true });
+      sessionStorage.setItem('gameConfig', JSON.stringify(ttConfig));
+      window.location.href = 'game.html';
+    });
+
+    // ===== VOICE =====
+    async function startVoice(mySocketId, existingPeerIds) {
+      const ok = await voiceManager.init(mySocketId, socketClient, (sid, speaking) => {
+        document.querySelectorAll(`[data-id="${sid}"]`)
+          .forEach(el => el.classList.toggle('speaking', speaking));
+      });
+      if (!ok) return;
+      document.getElementById('micBtn')?.classList.remove('hidden');
+      for (const pid of existingPeerIds) await voiceManager.connectPeer(pid);
+    }
+
+    // ===== INIT =====
+    i18n.load().then(() => {
+      i18n.applyToDOM();
+
+      if (socketClient) {
+        server.on('room_joined', ({ room }) => {
+          currentRoom  = room;
+          selectedMode = room.mode || 'ffa';
+          initSlots(selectedMode);
+          room.players.filter(p => p.isBot).forEach(b => assignBotToFirstEmpty(b));
+          renderPlayers(room);
+          renderSlots();
+          document.querySelectorAll('#configModeGrid .mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === selectedMode);
+          });
+          addSystemMsg('Você entrou na sala ' + code + ' como ' + playerName + '.');
+
+          const existingPeerIds = room.players
+            .filter(p => !p.isBot && p.id !== socketClient.playerId)
+            .map(p => p.id);
+          startVoice(socketClient.playerId, existingPeerIds);
+        });
+
+        const oldPlayerId = lobbyData.playerId || null;
+        socketClient.rejoinRoom({ code, playerName, oldPlayerId });
+
+        socketClient.socket.on('connect', () => {
+          const currentPlayerId = (JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}')).playerId || null;
+          socketClient.rejoinRoom({ code, playerName, oldPlayerId: currentPlayerId });
+        });
+
+        return;
+      }
+
+      // Mock mode
+      const room = server._safeRoom(code);
+      if (!room) {
+        addSystemMsg('⚠ Sala não encontrada.');
+        setTimeout(() => window.location.href = 'index.html', 2000);
+        return;
+      }
+
+      currentRoom  = room;
+      selectedMode = room.mode || 'ffa';
+      initSlots(selectedMode);
+      room.players.filter(p => p.isBot).forEach(b => assignBotToFirstEmpty(b));
+      renderPlayers(room);
+      renderSlots();
+
+      const winnerMsg = sessionStorage.getItem('tetrinet_lobby_msg');
+      if (winnerMsg) {
+        sessionStorage.removeItem('tetrinet_lobby_msg');
+        addSystemMsg(winnerMsg);
+      } else {
+        addSystemMsg('Você entrou na sala ' + code + ' como ' + playerName + '.');
+      }
+
+      document.querySelectorAll('#configModeGrid .mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === selectedMode);
+      });
+    });
+  </script>
+</body>
+</html>
