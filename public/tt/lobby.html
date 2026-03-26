@@ -39,6 +39,39 @@
       color: var(--piece-S);
       letter-spacing: 1px;
     }
+    /* === BOMBER INVITE MODAL (BIM) === */
+    .bim-box {
+      background: var(--bg2); border: 1px solid var(--accent);
+      border-radius: 6px; box-shadow: 0 0 32px rgba(0,229,255,0.18);
+      padding: 20px 24px 24px; display: flex; flex-direction: column;
+      align-items: center; gap: 14px; width: 280px; max-width: 90vw;
+    }
+    .bim-header { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+    .bim-title {
+      font-family: var(--font-pixel); font-size: 9px;
+      color: var(--accent); letter-spacing: 2px; text-shadow: 0 0 10px var(--accent);
+    }
+    .bim-close-btn {
+      background: transparent; border: 1px solid var(--border2); border-radius: 3px;
+      color: var(--text2); font-family: var(--font-pixel); font-size: 9px;
+      padding: 4px 7px; cursor: pointer; transition: color .15s, border-color .15s;
+    }
+    .bim-close-btn:hover { color: var(--danger); border-color: var(--danger); }
+    .bim-subtitle {
+      font-family: var(--font-pixel); font-size: 7px;
+      color: var(--text2); letter-spacing: 1px; text-align: center;
+    }
+    .bim-qr-wrap {
+      background: #0a0a0f; border: 2px solid var(--border2);
+      border-radius: 4px; padding: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #bimQrCode canvas, #bimQrCode img { display: block; width: 180px !important; height: 180px !important; }
+    .bim-hint { font-family: var(--font-pixel); font-size: 7px; color: var(--text2); letter-spacing: 1px; }
+    .bim-actions { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+    .bim-actions .overlay-btn { font-size: 10px; padding: 10px 16px; width: 100%; letter-spacing: 1px; }
+    .bim-share-btn { background: var(--accent2); color: #fff; border: none; }
+    .bim-share-btn:hover { background: #fff; color: var(--accent2); box-shadow: 0 0 20px var(--accent2); }
   </style>
 </head>
 <body class="lobby-page">
@@ -136,12 +169,33 @@
 
   <div class="copy-toast hidden" id="copyToast"></div>
 
+  <!-- ===== BOMBER INVITE MODAL ===== -->
+  <div class="overlay hidden" id="bomberInviteModal">
+    <div class="bim-box">
+      <div class="bim-header">
+        <span class="bim-title">CONVIDAR BOMBARDEIRO</span>
+        <button class="bim-close-btn" id="bimCloseBtn">✕</button>
+      </div>
+      <div class="bim-subtitle" id="bimSubtitle"></div>
+      <div class="bim-qr-wrap">
+        <div id="bimQrCode"></div>
+      </div>
+      <p class="bim-hint">Escaneie com o celular</p>
+      <div class="bim-actions">
+        <button class="overlay-btn bim-share-btn hidden" id="bimShareBtn">COMPARTILHAR</button>
+        <button class="overlay-btn secondary" id="bimCopyBtn">COPIAR LINK</button>
+        <button class="overlay-btn secondary" id="bimCloseBtn2">FECHAR</button>
+      </div>
+    </div>
+  </div>
+
   <script src="../js/i18n.js"></script>
   <script src="../js/mock-server.js"></script>
   <script src="../js/config.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="../js/socket-client.js"></script>
   <script src="../js/voice.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
     // ===== STATE =====
     const lobbyData = JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}');
@@ -188,6 +242,48 @@
       const base = window.location.href.replace('lobby.html', 'bomber.html').split('?')[0];
       return `${base}?room=${code}&slot=${slotIdx}`;
     }
+
+    // ===== BOMBER INVITE MODAL =====
+    let _bimUrl = '';
+
+    function openBomberInviteModal(slotIdx, playerName) {
+      _bimUrl = bomberInviteUrl(slotIdx);
+      document.getElementById('bimSubtitle').textContent =
+        playerName.toUpperCase() + '  —  SLOT ' + (slotIdx + 1);
+
+      const qrEl = document.getElementById('bimQrCode');
+      qrEl.innerHTML = ''; // qrcodejs sempre appenda, nunca substitui
+      new QRCode(qrEl, {
+        text: _bimUrl, width: 180, height: 180,
+        colorDark: '#00e5ff', colorLight: '#0a0a0f',
+        correctLevel: QRCode.CorrectLevel.M,
+      });
+
+      document.getElementById('bimShareBtn').classList.toggle('hidden', !navigator.share);
+      document.getElementById('bomberInviteModal').classList.remove('hidden');
+    }
+
+    function closeBomberInviteModal() {
+      document.getElementById('bomberInviteModal').classList.add('hidden');
+      _bimUrl = '';
+    }
+
+    document.getElementById('bimCloseBtn').addEventListener('click', closeBomberInviteModal);
+    document.getElementById('bimCloseBtn2').addEventListener('click', closeBomberInviteModal);
+    document.getElementById('bomberInviteModal').addEventListener('click', function(e) {
+      if (e.target === this) closeBomberInviteModal();
+    });
+    document.getElementById('bimCopyBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText(_bimUrl)
+        .then(() => showToast('Link do bombardeiro copiado!'));
+    });
+    document.getElementById('bimShareBtn').addEventListener('click', () => {
+      navigator.share?.({
+        title: 'TetriNET Tag Team — Bombardeiro',
+        text: 'Entre como Bombardeiro nesta partida!',
+        url: _bimUrl,
+      }).catch(() => {});
+    });
 
     // ===== RENDER SLOTS =====
     function buildSlotCard(idx, color) {
@@ -236,8 +332,7 @@
             inviteBtn.textContent = '🎯 CONVIDAR BOMBARDEIRO';
             inviteBtn.addEventListener('click', e => {
               e.stopPropagation();
-              navigator.clipboard.writeText(bomberInviteUrl(idx))
-                .then(() => showToast('Link do bombardeiro copiado!'));
+              openBomberInviteModal(idx, occupant.playerName);
             });
             slot.appendChild(inviteBtn);
           }
