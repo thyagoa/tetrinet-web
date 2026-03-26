@@ -14,6 +14,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ===== ROOM STORE =====
 const rooms = {}; // code → room
 
+// ===== BOMBER LINKS (Tag Team) =====
+const bomberLinks   = {}; // moverId → bomberSocketId
+const moverOfBomber = {}; // bomberSocketId → moverId
+
 const BOT_NAMES_POOL = ['ALPHA','BETA','GAMMA','DELTA','EPSILON','ZETA'];
 
 function generateCode() {
@@ -300,6 +304,44 @@ io.on('connection', socket => {
     socket.to(code).emit('game_over', { winners, finalScores });
   });
 
+  // ----- BOMBER JOIN (Tag Team) -----
+  socket.on('bomber_join', ({ roomCode, slotIdx, bomberName }) => {
+    const room = rooms[roomCode];
+    if (!room) { socket.emit('error_msg', { message: 'Sala não encontrada.' }); return; }
+
+    const slot = (room.slots || [])[slotIdx];
+    if (!slot) { socket.emit('error_msg', { message: 'Slot inválido.' }); return; }
+
+    const moverPlayer = room.players.find(p => p.id === slot.playerId && !slot.isBot);
+    if (!moverPlayer) { socket.emit('error_msg', { message: 'Movedor não encontrado.' }); return; }
+
+    bomberLinks[moverPlayer.id] = socket.id;
+    moverOfBomber[socket.id]    = moverPlayer.id;
+
+    socket.join(roomCode);
+    socket.data.roomCode = roomCode;
+    socket.data.isBomber = true;
+    socket.data.moverId  = moverPlayer.id;
+
+    socket.emit('bomber_linked', {
+      mover:         { id: moverPlayer.id, name: moverPlayer.name },
+      inventoryData: [],
+      boards:        [],
+      players:       room.players,
+    });
+
+    const moverSocket = io.sockets.sockets.get(moverPlayer.id);
+    if (moverSocket) moverSocket.emit('bomber_linked_ack', { bomberName });
+  });
+
+  // ----- INVENTORY UPDATE (Tag Team) -----
+  socket.on('inventory_update_tt', ({ moverId, inventory }) => {
+    const bomberSocketId = bomberLinks[moverId];
+    if (!bomberSocketId) return;
+    const bomberSock = io.sockets.sockets.get(bomberSocketId);
+    if (bomberSock) bomberSock.emit('inventory_update', { inventory });
+  });
+
   socket.on('narrator_comment', ({ text }) => {
     const code = socket.data.roomCode;
     if (!code || !text) return;
@@ -399,6 +441,19 @@ io.on('connection', socket => {
   // ----- DISCONNECT -----
   socket.on('disconnect', () => {
     console.log('disconnect', socket.id);
+
+    // Bombardeiro: limpar vínculo sem grace period
+    if (socket.data.isBomber) {
+      const mid = moverOfBomber[socket.id];
+      if (mid) {
+        delete bomberLinks[mid];
+        const moverSock = io.sockets.sockets.get(mid);
+        if (moverSock) moverSock.emit('bomber_disconnected');
+      }
+      delete moverOfBomber[socket.id];
+      return;
+    }
+
     // Use grace period to allow page-navigation reconnections
     if (socket.data.roomCode) {
       scheduleLeave(socket);
@@ -409,6 +464,15 @@ io.on('connection', socket => {
     const code = socket.data.roomCode;
     const room = rooms[code];
     if (!room) return;
+
+    // Limpar vínculo do Bombardeiro se este era o Movedor
+    const bomberSockId = bomberLinks[socket.id];
+    if (bomberSockId) {
+      delete moverOfBomber[bomberSockId];
+      delete bomberLinks[socket.id];
+      const bomberSock = io.sockets.sockets.get(bomberSockId);
+      if (bomberSock) bomberSock.emit('game_over', {});
+    }
 
     room.players = room.players.filter(p => p.id !== socket.id);
     socket.leave(code);

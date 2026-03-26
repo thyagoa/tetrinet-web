@@ -237,6 +237,20 @@
         });
       }
     }, 300);
+
+    // 4. Escutar eventos de vínculo com o Bombardeiro
+    (function waitForSocket() {
+      const s = socketClient?.socket;
+      if (!s) { setTimeout(waitForSocket, 300); return; }
+      s.on('bomber_linked_ack', ({ bomberName }) => {
+        const el = document.getElementById('bomberStatus');
+        if (el) { el.textContent = '● ' + bomberName; el.classList.add('linked'); }
+      });
+      s.on('bomber_disconnected', () => {
+        const el = document.getElementById('bomberStatus');
+        if (el) { el.textContent = 'AGUARDANDO...'; el.classList.remove('linked'); }
+      });
+    })();
   </script>
 </body>
 </html>

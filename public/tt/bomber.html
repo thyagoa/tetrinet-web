@@ -621,7 +621,7 @@
       });
 
       // Player died
-      socket.on('player_died', ({ playerId }) => {
+      socket.on('player_dead', ({ playerId }) => {
         const t = targets.find(t => t.id === playerId);
         if (t) { t.alive = false; renderTargets(); }
         if (selectedTarget === playerId) {
