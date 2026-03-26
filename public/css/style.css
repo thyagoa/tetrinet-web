@@ -709,6 +709,11 @@ input[type="range"]::-webkit-slider-thumb {
   align-self: flex-start;
 }
 .slots-team-slots { display: flex; flex-wrap: wrap; gap: 6px; }
+.slots-grid--2col .slots-team-slots { display: grid; grid-template-columns: 1fr 1fr; }
+
+/* TAG TEAM bicolor words */
+.tt-word-tag  { color: var(--piece-S); text-shadow: 0 0 8px var(--piece-S); }
+.tt-word-team { color: var(--piece-L); text-shadow: 0 0 8px var(--piece-L); }
 
 .slot-card {
   flex: 1; min-width: 100px; background: var(--bg3);

@@ -11,9 +11,9 @@
     .logo-tag-sm {
       font-family: var(--font-pixel);
       font-size: 8px;
-      color: var(--piece-L);
+      color: var(--text2);
       letter-spacing: 2px;
-      text-shadow: 0 0 8px var(--piece-L);
+      text-shadow: none;
     }
     /* Bomber invite button inside slot card */
     .slot-bomber-btn {
@@ -48,7 +48,7 @@
     <header class="lobby-header lobby-header-compact">
       <div style="display:flex;flex-direction:column;gap:2px">
         <h1 class="logo logo-sm">TETRI<span>NET</span></h1>
-        <span class="logo-tag-sm">: TAG TEAM</span>
+        <span class="logo-tag-sm">— <span class="tt-word-tag">TAG</span> <span class="tt-word-team">TEAM</span> —</span>
       </div>
       <div class="room-code-display">
         <span class="rc-label">CÓDIGO DA SALA</span>
@@ -266,6 +266,7 @@
     function renderSlots() {
       const grid     = document.getElementById('slotsGrid');
       grid.innerHTML = '';
+      grid.className = 'slots-grid' + (selectedMode !== '1v1' ? ' slots-grid--2col' : '');
       const cfg      = MODE_SLOTS[selectedMode] || MODE_SLOTS.ffa;
       const isFfa    = selectedMode === 'ffa';
       const gameTotal = gameSlotCount(selectedMode);
