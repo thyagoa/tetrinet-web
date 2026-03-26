@@ -58,6 +58,10 @@ html, body { width: 100%; height: 100%; background: var(--bg); color: var(--text
 .lb-s { background: var(--piece-S); color: #000; }
 .lb-z { background: var(--piece-Z); color: #fff; }
 
+.lb-active { filter: brightness(1.5); transform: scale(1.2); transition: transform .15s, filter .15s; }
+.lb-flash  { animation: lb-pulse .3s ease-in-out 3; }
+@keyframes lb-pulse { 0%,100% { transform: scale(1.2); } 50% { transform: scale(1.6); } }
+
 .lobby-main { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 @media(max-width:700px){ .lobby-main { grid-template-columns: 1fr; } }
 

@@ -18,13 +18,13 @@
         <p class="logo-sub" data-i18n="ui.edition">BROWSER EDITION (v0.17b)</p>
       </div>
       <div class="logo-blocks">
-        <span class="lb lb-i">&nbsp;</span>
-        <span class="lb lb-o">&nbsp;</span>
-        <span class="lb lb-t">&nbsp;</span>
-        <span class="lb lb-l">&nbsp;</span>
-        <span class="lb lb-j">&nbsp;</span>
-        <span class="lb lb-s">&nbsp;</span>
-        <span class="lb lb-z">&nbsp;</span>
+        <span class="lb lb-i" id="lb0">&nbsp;</span>
+        <span class="lb lb-o" id="lb1">&nbsp;</span>
+        <span class="lb lb-t" id="lb2">&nbsp;</span>
+        <span class="lb lb-l" id="lb3">&nbsp;</span>
+        <span class="lb lb-j" id="lb4">&nbsp;</span>
+        <span class="lb lb-s" id="lb5">&nbsp;</span>
+        <span class="lb lb-z" id="lb6">&nbsp;</span>
       </div>
     </header>
 
@@ -272,6 +272,49 @@
     document.getElementById('roomCode').addEventListener('input', e => {
       e.target.value = e.target.value.toUpperCase();
     });
+
+    // ===== EASTER EGG: digitar TAGTEAM ativa o modo Tag Team =====
+    (function() {
+      const SEQ = ['T','A','G','T','E','A','M'];
+      let idx = 0;
+
+      function resetEaster() {
+        idx = 0;
+        for (let i = 0; i < 7; i++) {
+          const el = document.getElementById('lb' + i);
+          if (el) { el.textContent = '\u00a0'; el.classList.remove('lb-active', 'lb-flash'); }
+        }
+      }
+
+      function triggerTagTeam() {
+        const sub = document.querySelector('.logo-sub');
+        if (sub) sub.textContent = '\u25ba TAG TEAM UNLOCKED!';
+        for (let i = 0; i < 7; i++) {
+          const el = document.getElementById('lb' + i);
+          if (el) el.classList.add('lb-flash');
+        }
+        setTimeout(() => { window.location.href = 'tt/index.html'; }, 1500);
+      }
+
+      document.addEventListener('keydown', function(e) {
+        if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+        const key = e.key.toUpperCase();
+        if (key === SEQ[idx]) {
+          const el = document.getElementById('lb' + idx);
+          if (el) { el.textContent = SEQ[idx]; el.classList.add('lb-active'); }
+          idx++;
+          if (idx === SEQ.length) triggerTagTeam();
+        } else if (key.length === 1) {
+          resetEaster();
+          // tenta começar nova sequência com a tecla atual
+          if (key === SEQ[0]) {
+            const el = document.getElementById('lb0');
+            if (el) { el.textContent = SEQ[0]; el.classList.add('lb-active'); }
+            idx = 1;
+          }
+        }
+      });
+    })();
   </script>
 </body>
 </html>
