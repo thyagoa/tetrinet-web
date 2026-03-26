@@ -63,7 +63,7 @@ class SocketClient {
   }
 
   addBot({ difficulty }) {
-    this._socket.emit('add_bot', { difficulty });
+    this._socket.emit('add_bot', { difficulty, code: this._roomCode });
   }
 
   removeBot({ botId }) {

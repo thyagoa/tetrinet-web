@@ -133,8 +133,8 @@ io.on('connection', socket => {
   });
 
   // ----- ADD BOT -----
-  socket.on('add_bot', ({ difficulty }) => {
-    const code = socket.data.roomCode;
+  socket.on('add_bot', ({ difficulty, code: clientCode }) => {
+    const code = socket.data.roomCode || clientCode;
     const room = rooms[code];
     if (!room) {
       socket.emit('error_msg', { message: 'Sala não encontrada. Recarregue a página.' });
