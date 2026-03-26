@@ -298,7 +298,7 @@ io.on('connection', socket => {
     const code = socket.data.roomCode;
     if (!code) return;
     // Relay to everyone in the room (including sender so all apply)
-    io.to(code).emit('use_special', { attackerId, targetId, special });
+    io.to(code).emit('use_special', { attackerId, targetId, special, fromBomber: !!socket.data.isBomber });
   });
 
   socket.on('player_dead', ({ playerId }) => {
