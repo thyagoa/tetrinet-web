@@ -293,6 +293,7 @@
           const el = document.getElementById('lb' + i);
           if (el) el.classList.add('lb-flash');
         }
+        sessionStorage.setItem('tt_unlocked', '1');
         setTimeout(() => { window.location.href = 'tt/index.html'; }, 1500);
       }
 

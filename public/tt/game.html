@@ -192,6 +192,7 @@
   <script src="../js/voice.js"></script>
   <script src="../js/ui.js"></script>
   <script>
+    if (!sessionStorage.getItem('tt_unlocked')) { window.location.replace('../index.html'); }
     // ===== TAG TEAM PATCHES (run after ui.js) =====
 
     // 1. Redirect lobby/menu buttons to tt/ pages

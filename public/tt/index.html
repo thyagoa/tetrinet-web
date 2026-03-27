@@ -123,6 +123,7 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="../js/socket-client.js"></script>
   <script>
+    if (!sessionStorage.getItem('tt_unlocked')) { window.location.replace('../index.html'); }
     const nameInput = document.getElementById('playerName');
     const saved = localStorage.getItem('tetrinet_player_name');
     if (saved) nameInput.value = saved;

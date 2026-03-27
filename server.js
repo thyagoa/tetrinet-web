@@ -357,8 +357,9 @@ io.on('connection', socket => {
 
     socket.join(roomCode);
     socket.data.roomCode = roomCode;
-    socket.data.isBomber = true;
-    socket.data.moverId  = moverPlayer.id;
+    socket.data.isBomber   = true;
+    socket.data.moverId    = moverPlayer.id;
+    socket.data.bomberName = bomberName;
 
     socket.emit('bomber_linked', {
       mover:         { id: moverPlayer.id, name: moverPlayer.name },
@@ -419,6 +420,19 @@ io.on('connection', socket => {
     socket.join(roomCode);
     socket.data.roomCode = roomCode;
     socket.data.playerId = socket.id;
+
+    // Tag Team: se este jogador tinha bombardeiro vinculado, atualiza mappings e re-emite ack
+    if (bomberLinks[oldPlayerId]) {
+      const bomberSocketId = bomberLinks[oldPlayerId];
+      bomberLinks[socket.id] = bomberSocketId;   // nova chave (disconnect cleanup)
+      // chave antiga mantida para inventory_update_tt (usa MY_PLAYER_ID = old socket ID)
+      moverOfBomber[bomberSocketId] = socket.id;
+      const bomberSock = io.sockets.sockets.get(bomberSocketId);
+      if (bomberSock) {
+        bomberSock.data.moverId = socket.id;
+        socket.emit('bomber_linked_ack', { bomberName: bomberSock.data.bomberName || 'BOMBARDEIRO' });
+      }
+    }
 
     socket.emit('game_joined', { playerId: socket.id });
   });

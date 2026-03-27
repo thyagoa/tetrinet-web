@@ -202,6 +202,7 @@
   <script src="../js/voice.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
+    if (!sessionStorage.getItem('tt_unlocked')) { window.location.replace('index.html'); }
     // ===== STATE =====
     const lobbyData = JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}');
     if (!lobbyData.code) { window.location.href = 'index.html'; }
