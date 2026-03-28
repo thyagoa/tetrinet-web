@@ -64,8 +64,9 @@ if (IS_MULTIPLAYER && socketClient) {
   // Receive specials from remote attackers
   mpSocket.on('use_special', ({ attackerId, targetId, special, fromBomber }) => {
     if ((attackerId === MY_PLAYER_ID || attackerId === 'player') && !fromBomber) return; // ignore own echoes (but not bomber's commands)
-    // Translate targetId: if it's our socket.id, the local player is the target
-    const localTargetId = (MY_PLAYER_ID && targetId === MY_PLAYER_ID) ? 'player' : targetId;
+    // Translate targetId: if it's our socket.id (lobby OR game ID), the local player is the target
+    const currentPlayerId = JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}').playerId || MY_PLAYER_ID;
+    const localTargetId = (targetId === MY_PLAYER_ID || targetId === currentPlayerId) ? 'player' : targetId;
     applySpecial(attackerId, localTargetId, special);
   });
 

@@ -264,6 +264,34 @@
     }
     .waiting-dot { animation: blink 1s step-end infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .bomber-name-input {
+      font-family: var(--font-pixel);
+      font-size: 11px;
+      background: var(--bg2);
+      border: 1px solid var(--accent);
+      color: var(--text1);
+      padding: 10px 14px;
+      border-radius: 6px;
+      width: 180px;
+      text-align: center;
+      letter-spacing: 2px;
+      outline: none;
+    }
+    .bomber-name-input:focus { border-color: var(--orange); }
+    .bomber-enter-btn {
+      display: block;
+      font-family: var(--font-pixel);
+      font-size: 10px;
+      letter-spacing: 2px;
+      background: var(--orange);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 0;
+      cursor: pointer;
+      width: 180px;
+      margin: 8px auto 0;
+    }
 
     /* ===== BOMB COLORS ===== */
     .bomb-a { color: #ff1744; }
@@ -291,11 +319,24 @@
   <!-- WAITING SCREEN (shown until bomber_linked) -->
   <div class="waiting-screen" id="waitingScreen">
     <div class="waiting-icon">🎯</div>
-    <div class="waiting-title">BOMBARDEIRO</div>
-    <div class="waiting-sub" id="waitingText">
-      AGUARDANDO CONEXÃO<span class="waiting-dot">...</span><br><br>
-      SALA: <span id="waitingRoom">—</span><br>
-      SLOT: <span id="waitingSlot">—</span>
+
+    <!-- Etapa 1: formulário de nome -->
+    <div id="nameEntryForm">
+      <div class="waiting-title" style="margin-bottom:12px">BOMBARDEIRO</div>
+      <div class="waiting-sub" style="margin-bottom:16px">ESCOLHA SEU NOME</div>
+      <input type="text" id="bomberNameInput" class="bomber-name-input"
+             maxlength="12" placeholder="SEU NOME" autocomplete="off">
+      <button id="enterBomberBtn" class="bomber-enter-btn">ENTRAR</button>
+    </div>
+
+    <!-- Etapa 2: aguardando conexão (oculto até clicar ENTRAR) -->
+    <div id="waitingMessage" style="display:none">
+      <div class="waiting-title">BOMBARDEIRO</div>
+      <div class="waiting-sub" id="waitingText">
+        AGUARDANDO CONEXÃO<span class="waiting-dot">...</span><br><br>
+        SALA: <span id="waitingRoom">—</span><br>
+        SLOT: <span id="waitingSlot">—</span>
+      </div>
     </div>
   </div>
 
@@ -350,10 +391,26 @@
     // ===== URL PARAMS =====
     // Token opaco lido do pathname (/b/:token)
     const BOMBER_TOKEN = window.location.pathname.split('/').pop() || '';
-    const BOMBER_NAME  = localStorage.getItem('tetrinet_player_name') || 'BOMBARDEIRO';
+    let bomberNameChosen = '';
 
-    document.getElementById('waitingRoom').textContent = '—';
-    document.getElementById('waitingSlot').textContent = '—';
+    // Pré-preencher input com nome salvo
+    const _savedName = localStorage.getItem('tetrinet_player_name') || '';
+    const _nameInput = document.getElementById('bomberNameInput');
+    if (_savedName) _nameInput.value = _savedName;
+
+    // Ao clicar ENTRAR: validar nome, conectar socket
+    document.getElementById('enterBomberBtn').addEventListener('click', () => {
+      const name = _nameInput.value.trim() || 'BOMBARDEIRO';
+      bomberNameChosen = name;
+      localStorage.setItem('tetrinet_player_name', name);
+      document.getElementById('nameEntryForm').style.display  = 'none';
+      document.getElementById('waitingMessage').style.display = 'block';
+      connect();
+    });
+    // Enter no input também confirma
+    _nameInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('enterBomberBtn').click();
+    });
 
     // ===== CONSTANTS =====
     const COLS = 12, ROWS = 22;
@@ -567,7 +624,7 @@
         setStatus('connecting', 'AGUARDANDO...');
         socket.emit('bomber_join', {
           token:      BOMBER_TOKEN,
-          bomberName: BOMBER_NAME,
+          bomberName: bomberNameChosen || 'BOMBARDEIRO',
         });
       });
 
@@ -609,22 +666,32 @@
         if (selectedBombType !== null && !inventory.some(s => s === selectedBombType)) {
           selectedBombType = null;
         }
+        // Auto-selecionar primeira bomba disponível se nenhuma estiver selecionada
+        if (selectedBombType === null && inventory.length > 0) {
+          selectedBombType = [...new Set(inventory)][0];
+        }
         renderInventory();
+        updateFireBtn();
       });
 
       // Board updates — mover + enemies
       socket.on('board_update', ({ boards }) => {
+        // IDs conhecidos como inimigos (não-parceiro)
+        const enemyIds = new Set(targets.filter(t => !t.isPartner).map(t => t.id));
         boards.forEach(b => {
-          if (b.id === moverId) {
+          if (!enemyIds.has(b.id)) {
+            // Board não é de inimigo → é o parceiro/mover
+            if (b.id !== moverId) {
+              // moverId desatualizado (lobby→game) — auto-corrigir
+              moverId = b.id;
+              const partner = targets.find(t => t.isPartner);
+              if (partner) partner.id = b.id;
+            }
             drawBoard(b.grid);
             document.getElementById('partnerScore').textContent = 'PONTOS: ' + (b.score || 0);
           }
           const t = targets.find(t => t.id === b.id);
-          if (t) {
-            t.grid  = b.grid;
-            t.score = b.score;
-            renderTargets();
-          }
+          if (t) { t.grid = b.grid; t.score = b.score; renderTargets(); }
         });
       });
 
@@ -679,11 +746,12 @@
     // ===== INIT =====
     if (!BOMBER_TOKEN || BOMBER_TOKEN.length < 8) {
       setStatus('error', 'LINK INVÁLIDO');
+      document.getElementById('nameEntryForm').style.display  = 'none';
+      document.getElementById('waitingMessage').style.display = 'block';
       document.getElementById('waitingText').innerHTML =
         'Link inválido.<br>Peça ao seu parceiro<br>um novo link.';
-    } else {
-      connect();
     }
+    // Conexão iniciada pelo clique no botão ENTRAR
   </script>
 </body>
 </html>

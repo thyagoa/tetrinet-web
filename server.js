@@ -369,7 +369,7 @@ io.on('connection', socket => {
     });
 
     const moverSocket = io.sockets.sockets.get(moverPlayer.id);
-    if (moverSocket) moverSocket.emit('bomber_linked_ack', { bomberName });
+    if (moverSocket) moverSocket.emit('bomber_linked_ack', { bomberName, slotIdx });
   });
 
   // ----- INVENTORY UPDATE (Tag Team) -----

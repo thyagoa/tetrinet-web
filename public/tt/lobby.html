@@ -335,7 +335,7 @@
           if (isLinked) {
             const linked = document.createElement('span');
             linked.className = 'slot-bomber-linked';
-            linked.textContent = '🎯 BOMBARDEIRO ✓';
+            linked.textContent = '🎯 ' + (bomberLinks[idx]?.name || 'BOMBARDEIRO') + ' ✓';
             slot.appendChild(linked);
           } else {
             const inviteBtn = document.createElement('button');
@@ -736,8 +736,14 @@
     server.on('chat_message', entry => addChatMessage(entry));
     server.on('error_msg', ({ message }) => addSystemMsg('⚠ ' + message));
 
-    // Fecha modal QR automaticamente quando bombardeiro confirma conexão
-    socketClient.socket.on('bomber_linked_ack', () => closeBomberInviteModal());
+    // Fecha modal QR e mostra nome do bombardeiro no slot ao conectar
+    socketClient.socket.on('bomber_linked_ack', ({ bomberName, slotIdx } = {}) => {
+      closeBomberInviteModal();
+      if (slotIdx !== undefined) {
+        bomberLinks[slotIdx] = { name: bomberName || 'BOMBARDEIRO' };
+        renderSlots();
+      }
+    });
 
     server.on('game_starting', ({ config }) => {
       voiceManager.destroy();
