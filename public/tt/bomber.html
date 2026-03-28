@@ -167,6 +167,8 @@
       box-shadow: 0 0 8px var(--orange);
     }
     .target-card.dead { opacity: 0.3; pointer-events: none; }
+    .target-card.partner-target { border-color: var(--piece-S); margin-top: 6px; }
+    .target-card.partner-target .target-name::before { content: '★ '; color: var(--piece-S); }
     .target-name {
       font-family: var(--font-pixel);
       font-size: 6px;
@@ -459,7 +461,8 @@
         const card = document.createElement('div');
         card.className = 'target-card'
           + (t.id === selectedTarget ? ' selected-target' : '')
-          + (!t.alive ? ' dead' : '');
+          + (!t.alive ? ' dead' : '')
+          + (t.isPartner ? ' partner-target' : '');
 
         // Mini canvas
         const mc = document.createElement('canvas');
@@ -593,6 +596,13 @@
         if (moverBoard) drawBoard(moverBoard.grid);
       });
 
+      // Jogo iniciou — mover tem novo socket ID, rebuilda alvos
+      socket.on('bomber_game_start', ({ newMoverId, players }) => {
+        moverId = newMoverId;
+        buildTargets(players, moverId, []);
+        renderTargets();
+      });
+
       // Inventory changed (mover collected or used bomb)
       socket.on('inventory_update', ({ inventory: inv }) => {
         inventory = inv || [];
@@ -639,11 +649,19 @@
 
     function buildTargets(players, myMoverId, boards) {
       targets = (players || [])
-        .filter(p => p.id !== myMoverId && !p.isSpectator)
+        .filter(p => !p.isSpectator)
         .map(p => {
           const board = boards?.find(b => b.id === p.id);
-          return { id: p.id, name: p.name, alive: p.alive !== false, grid: board?.grid || null, score: board?.score || 0 };
+          return {
+            id: p.id, name: p.name,
+            alive: p.alive !== false,
+            grid: board?.grid || null,
+            score: board?.score || 0,
+            isPartner: p.id === myMoverId
+          };
         });
+      // Inimigos primeiro, parceiro por último
+      targets.sort((a, b) => (a.isPartner ? 1 : 0) - (b.isPartner ? 1 : 0));
       if (targets.length > 0) selectedTarget = targets[0].id;
     }
 

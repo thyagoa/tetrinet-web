@@ -736,6 +736,9 @@
     server.on('chat_message', entry => addChatMessage(entry));
     server.on('error_msg', ({ message }) => addSystemMsg('⚠ ' + message));
 
+    // Fecha modal QR automaticamente quando bombardeiro confirma conexão
+    socketClient.socket.on('bomber_linked_ack', () => closeBomberInviteModal());
+
     server.on('game_starting', ({ config }) => {
       voiceManager.destroy();
       const ttConfig = Object.assign({}, config, { isTagTeam: true });

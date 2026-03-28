@@ -431,6 +431,8 @@ io.on('connection', socket => {
       if (bomberSock) {
         bomberSock.data.moverId = socket.id;
         socket.emit('bomber_linked_ack', { bomberName: bomberSock.data.bomberName || 'BOMBARDEIRO' });
+        // Notifica bombardeiro do novo socket ID do mover e da lista atualizada de jogadores
+        bomberSock.emit('bomber_game_start', { newMoverId: socket.id, players: room.players });
       }
     }
 
