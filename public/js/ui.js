@@ -64,6 +64,11 @@ if (IS_MULTIPLAYER && socketClient) {
   // Receive specials from remote attackers
   mpSocket.on('use_special', ({ attackerId, targetId, special, fromBomber }) => {
     if ((attackerId === MY_PLAYER_ID || attackerId === 'player') && !fromBomber) return; // ignore own echoes (but not bomber's commands)
+    // Quando o bombardeiro dispara, remove do inventário do Movedor (fonte de verdade)
+    if (fromBomber && typeof player !== 'undefined' && player && player.alive) {
+      const bIdx = player.inventory.indexOf(special);
+      if (bIdx !== -1) { player.inventory.splice(bIdx, 1); renderInventory(); }
+    }
     // Translate targetId: if it's our socket.id (lobby OR game ID), the local player is the target
     const currentPlayerId = JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}').playerId || MY_PLAYER_ID;
     const localTargetId = (targetId === MY_PLAYER_ID || targetId === currentPlayerId) ? 'player' : targetId;

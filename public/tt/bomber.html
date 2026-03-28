@@ -264,6 +264,25 @@
     }
     .waiting-dot { animation: blink 1s step-end infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    /* ===== GAME OVER MODAL ===== */
+    .go-box {
+      background: var(--bg2); border: 1px solid var(--accent);
+      border-radius: 12px; padding: 32px 24px; text-align: center; max-width: 280px;
+    }
+    .go-icon { font-size: 48px; margin-bottom: 16px; }
+    .go-title {
+      font-family: var(--font-pixel); font-size: 13px; color: var(--orange);
+      letter-spacing: 3px; margin-bottom: 12px;
+    }
+    .go-sub {
+      font-family: var(--font-pixel); font-size: 8px; color: var(--text2);
+      line-height: 2; margin-bottom: 24px;
+    }
+    .go-close-btn {
+      font-family: var(--font-pixel); font-size: 10px; letter-spacing: 2px;
+      background: var(--bg3); color: var(--text1); border: 1px solid var(--accent);
+      border-radius: 6px; padding: 10px 20px; cursor: pointer; width: 100%;
+    }
     .bomber-name-input {
       font-family: var(--font-pixel);
       font-size: 11px;
@@ -425,10 +444,18 @@
       a:'#ff1744', c:'#00e676', b:'#40c4ff', r:'#ff9100',
       o:'#ff6d00', q:'#e040fb', g:'#64dd17', s:'#00e5ff', n:'#ffffff',
     };
+    // Cores por tipo de peça — chaves STRING, igual ao game.js
     const PIECE_COLORS = {
-      1:'#00e5ff', 2:'#ffea00', 3:'#d500f9', 4:'#ff6d00',
-      5:'#2979ff', 6:'#00e676', 7:'#ff1744', 8:'#808080',
+      I:'#00e5ff', O:'#ffea00', T:'#d500f9',
+      L:'#ff6d00', J:'#2979ff', S:'#00e676', Z:'#ff1744',
+      G:'#808080', // garbage
     };
+    function cellColor(v) {
+      if (!v || v === 0) return null;
+      if (PIECE_COLORS[v]) return PIECE_COLORS[v];
+      if (typeof v === 'string' && v.startsWith('sp:')) return BOMB_COLORS[v.slice(3)] || '#ffffff';
+      return '#808080';
+    }
 
     // ===== STATE =====
     let inventory        = [];
@@ -452,7 +479,8 @@
         for (let c = 0; c < COLS; c++) {
           const v = grid[r]?.[c] || 0;
           if (!v) continue;
-          ctx.fillStyle = PIECE_COLORS[v] || '#888';
+          const col = cellColor(v); if (!col) continue;
+          ctx.fillStyle = col;
           ctx.fillRect(c * CELL_SIZE + 1, r * CELL_SIZE + 1, CELL_SIZE - 2, CELL_SIZE - 2);
         }
       }
@@ -535,7 +563,8 @@
             for (let c = 0; c < COLS; c++) {
               const v = t.grid[r]?.[c] || 0;
               if (!v) continue;
-              mctx.fillStyle = PIECE_COLORS[v] || '#888';
+              const col = cellColor(v); if (!col) continue;
+              mctx.fillStyle = col;
               mctx.fillRect(c * mcSize + 1, r * mcSize + 1, mcSize - 2, mcSize - 2);
             }
           }
@@ -710,7 +739,18 @@
       // Game ended
       socket.on('game_over', () => {
         setStatus('connecting', 'JOGO ENCERRADO');
-        document.getElementById('fireBtn').disabled = true;
+        // Desabilitar todos os controles
+        document.getElementById('fireBtn').disabled     = true;
+        document.getElementById('prevTargetBtn').disabled = true;
+        document.getElementById('nextTargetBtn').disabled = true;
+        // Limpar inventário e alvos (bloqueia cliques)
+        inventory        = [];
+        selectedBombType = null;
+        selectedTarget   = null;
+        renderInventory();
+        renderTargets();
+        // Mostrar modal de fim de jogo
+        document.getElementById('gameOverModal').style.display = 'flex';
       });
     }
 
@@ -753,5 +793,16 @@
     }
     // Conexão iniciada pelo clique no botão ENTRAR
   </script>
+
+  <!-- GAME OVER MODAL -->
+  <div class="overlay" id="gameOverModal"
+       style="display:none; align-items:center; justify-content:center;">
+    <div class="go-box">
+      <div class="go-icon">🏁</div>
+      <div class="go-title">JOGO ENCERRADO</div>
+      <div class="go-sub">Para jogar novamente,<br>peça um novo convite ao Movedor.</div>
+      <button class="go-close-btn" onclick="window.close()">FECHAR ABA</button>
+    </div>
+  </div>
 </body>
 </html>
