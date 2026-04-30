@@ -1,5 +1,5 @@
 // ===== BOT AI =====
-// Simulates a TetriNET player using heuristic column evaluation.
+// Simulates a BrickNet player using heuristic column evaluation.
 // Difficulty 1 = easy (random + slow), 2 = medium, 3 = hard (optimal + fast)
 
 class BotPlayer {

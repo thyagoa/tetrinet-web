@@ -10,13 +10,13 @@ const SFX = (() => {
 
   // Load prefs from localStorage
   try {
-    const saved = JSON.parse(localStorage.getItem('tetrinet_sfx') || '{}');
+    const saved = JSON.parse(localStorage.getItem('bricknet_sfx') || '{}');
     if (typeof saved.enabled === 'boolean') enabled = saved.enabled;
     if (typeof saved.volume  === 'number')  volume  = saved.volume;
   } catch(_) {}
 
   function savePrefs() {
-    localStorage.setItem('tetrinet_sfx', JSON.stringify({ enabled, volume }));
+    localStorage.setItem('bricknet_sfx', JSON.stringify({ enabled, volume }));
   }
 
   // Lazy-init AudioContext on first user interaction

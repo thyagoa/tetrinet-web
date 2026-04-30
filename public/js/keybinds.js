@@ -28,7 +28,7 @@ const KEYBIND_LABELS = {
   discardBomb: 'Descartar Bomba',
 };
 
-const KEYBIND_STORAGE_KEY = 'tetrinet_keybinds';
+const KEYBIND_STORAGE_KEY = 'bricknet_keybinds';
 
 // Migration map: old e.key / legacy values → correct e.code values
 const KEYBIND_MIGRATION = {

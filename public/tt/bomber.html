@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>TetriNET: Tag Team — Bombardeiro</title>
+  <title>BrickNet: Tag Team — Bombardeiro</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
@@ -329,7 +329,7 @@
   <!-- HEADER -->
   <header class="bomber-header">
     <div class="bomber-title">
-      TETRI<span>NET</span>
+      BRICK<span>NET</span>
       <span class="tag">🎯 BOMBARDEIRO</span>
     </div>
     <div class="bomber-status connecting" id="statusBadge">CONECTANDO...</div>
@@ -413,7 +413,7 @@
     let bomberNameChosen = '';
 
     // Pré-preencher input com nome salvo
-    const _savedName = localStorage.getItem('tetrinet_player_name') || '';
+    const _savedName = localStorage.getItem('bricknet_player_name') || '';
     const _nameInput = document.getElementById('bomberNameInput');
     if (_savedName) _nameInput.value = _savedName;
 
@@ -421,7 +421,7 @@
     document.getElementById('enterBomberBtn').addEventListener('click', () => {
       const name = _nameInput.value.trim() || 'BOMBARDEIRO';
       bomberNameChosen = name;
-      localStorage.setItem('tetrinet_player_name', name);
+      localStorage.setItem('bricknet_player_name', name);
       document.getElementById('nameEntryForm').style.display  = 'none';
       document.getElementById('waitingMessage').style.display = 'block';
       connect();

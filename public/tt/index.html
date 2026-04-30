@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TetriNET: Tag Team</title>
+  <title>BrickNet: Tag Team</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
@@ -35,7 +35,7 @@
   <div class="entry-container">
     <header class="lobby-header">
       <div class="logo-wrap">
-        <h1 class="logo">TETRI<span>NET</span></h1>
+        <h1 class="logo">BRICK<span>NET</span></h1>
         <p class="logo-tag">— <span class="tt-word-tag">TAG</span> <span class="tt-word-team">TEAM</span> —</p>
         <p class="logo-sub">BROWSER EDITION (v0.17b)</p>
         <a href="../index.html" class="back-link">← MODO CLÁSSICO</a>
@@ -125,7 +125,7 @@
   <script>
     if (!sessionStorage.getItem('tt_unlocked')) { window.location.replace('../index.html'); }
     const nameInput = document.getElementById('playerName');
-    const saved = localStorage.getItem('tetrinet_player_name');
+    const saved = localStorage.getItem('bricknet_player_name');
     if (saved) nameInput.value = saved;
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -191,8 +191,8 @@
 
     server.on('room_created', ({ code, playerId }) => {
       const name = getPlayerName();
-      localStorage.setItem('tetrinet_player_name', name);
-      sessionStorage.setItem('tetrinet_lobby', JSON.stringify({
+      localStorage.setItem('bricknet_player_name', name);
+      sessionStorage.setItem('bricknet_lobby', JSON.stringify({
         code, isHost: true, playerName: name,
         mode: selectedMode,
         playerId,
@@ -203,8 +203,8 @@
 
     server.on('room_joined', ({ code, playerId }) => {
       const name = getPlayerName();
-      localStorage.setItem('tetrinet_player_name', name);
-      sessionStorage.setItem('tetrinet_lobby', JSON.stringify({
+      localStorage.setItem('bricknet_player_name', name);
+      sessionStorage.setItem('bricknet_lobby', JSON.stringify({
         code, isHost: false, playerName: name,
         playerId,
         isTagTeam: true,

@@ -28,9 +28,9 @@ if (IS_MULTIPLAYER && socketClient) {
 
   // Save game socket.id so lobby.html can correctly cancel pending leave when returning from game
   mpSocket.on('game_joined', ({ playerId }) => {
-    const ld = JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}');
+    const ld = JSON.parse(sessionStorage.getItem('bricknet_lobby') || '{}');
     ld.playerId = playerId;
-    sessionStorage.setItem('tetrinet_lobby', JSON.stringify(ld));
+    sessionStorage.setItem('bricknet_lobby', JSON.stringify(ld));
 
     // Init voice chat (playerId = novo socket.id nesta página)
     if (typeof voiceManager !== 'undefined' && socketClient) {
@@ -70,7 +70,7 @@ if (IS_MULTIPLAYER && socketClient) {
       if (bIdx !== -1) { player.inventory.splice(bIdx, 1); renderInventory(); }
     }
     // Translate targetId: if it's our socket.id (lobby OR game ID), the local player is the target
-    const currentPlayerId = JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}').playerId || MY_PLAYER_ID;
+    const currentPlayerId = JSON.parse(sessionStorage.getItem('bricknet_lobby') || '{}').playerId || MY_PLAYER_ID;
     const localTargetId = (targetId === MY_PLAYER_ID || targetId === currentPlayerId) ? 'player' : targetId;
     applySpecial(attackerId, localTargetId, special);
   });
@@ -1071,8 +1071,8 @@ document.getElementById('leaveBtn').addEventListener('click', () => {
   const confirmed = confirm(i18n.t('game.leaveConfirm'));
   if (confirmed) {
     if (typeof voiceManager !== 'undefined') voiceManager.destroy();
-    sessionStorage.removeItem('tetrinet_mock_session');
-    sessionStorage.removeItem('tetrinet_lobby');
+    sessionStorage.removeItem('bricknet_mock_session');
+    sessionStorage.removeItem('bricknet_lobby');
     window.location.href = 'index.html';
   }
 });
@@ -1261,16 +1261,16 @@ document.getElementById('lobbyBtn').addEventListener('click', () => {
   const winnerText = document.getElementById('winnerText').textContent;
   const result     = winnerSub || winnerText;
   const msg        = i18n.t('lobby.matchEnded', { result });
-  sessionStorage.setItem('tetrinet_lobby_msg', msg);
+  sessionStorage.setItem('bricknet_lobby_msg', msg);
 
-  const lobbyData = JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}');
+  const lobbyData = JSON.parse(sessionStorage.getItem('bricknet_lobby') || '{}');
   if (lobbyData.code) {
     try {
-      const raw = localStorage.getItem('tetrinet_room_' + lobbyData.code);
+      const raw = localStorage.getItem('bricknet_room_' + lobbyData.code);
       if (raw) {
         const room = JSON.parse(raw);
         room.started = false;
-        localStorage.setItem('tetrinet_room_' + lobbyData.code, JSON.stringify(room));
+        localStorage.setItem('bricknet_room_' + lobbyData.code, JSON.stringify(room));
       }
     } catch(e) {}
   }
@@ -1281,8 +1281,8 @@ document.getElementById('lobbyBtn').addEventListener('click', () => {
 
 document.getElementById('menuBtn').addEventListener('click', () => {
   if (typeof voiceManager !== 'undefined') voiceManager.destroy();
-  sessionStorage.removeItem('tetrinet_mock_session');
-  sessionStorage.removeItem('tetrinet_lobby');
+  sessionStorage.removeItem('bricknet_mock_session');
+  sessionStorage.removeItem('bricknet_lobby');
   window.location.href = 'index.html';
 });
 

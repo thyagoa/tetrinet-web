@@ -18,7 +18,7 @@ class MockServer {
 
     // Restore session state persisted across page navigations
     const saved = (() => {
-      try { return JSON.parse(sessionStorage.getItem('tetrinet_mock_session') || 'null'); } catch(e) { return null; }
+      try { return JSON.parse(sessionStorage.getItem('bricknet_mock_session') || 'null'); } catch(e) { return null; }
     })();
 
     if (saved) {
@@ -37,7 +37,7 @@ class MockServer {
   // Persist session state to survive page navigation
   _saveSession() {
     try {
-      sessionStorage.setItem('tetrinet_mock_session', JSON.stringify({
+      sessionStorage.setItem('bricknet_mock_session', JSON.stringify({
         playerId: this._playerId,
         roomCode: this._roomCode,
         isHost:   this._isHost,
@@ -317,14 +317,14 @@ class MockServer {
   _saveRoom(code) {
     const room = this._rooms[code];
     if (room) {
-      try { localStorage.setItem('tetrinet_room_' + code, JSON.stringify(room)); } catch(e) {}
+      try { localStorage.setItem('bricknet_room_' + code, JSON.stringify(room)); } catch(e) {}
     }
   }
 
   _loadRoom(code) {
     if (this._rooms[code]) return this._rooms[code];
     try {
-      const raw = localStorage.getItem('tetrinet_room_' + code);
+      const raw = localStorage.getItem('bricknet_room_' + code);
       if (raw) {
         this._rooms[code] = JSON.parse(raw);
         return this._rooms[code];

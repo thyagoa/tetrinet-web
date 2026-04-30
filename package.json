@@ -1,7 +1,7 @@
 {
-  "name": "tetrinet",
+  "name": "bricknet",
   "version": "1.0.0",
-  "description": "TetriNET - Multiplayer Tetris with special blocks",
+  "description": "BrickNet - Multiplayer Tetris with special blocks",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

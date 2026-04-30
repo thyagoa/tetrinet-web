@@ -1,7 +1,7 @@
 // ===== BOMB ICONS THEME =====
 // Manages bomb display theme: 'letters' (default) or 'icons' (SVG)
 
-const BOMB_THEME_STORAGE_KEY = 'tetrinet_bombtheme';
+const BOMB_THEME_STORAGE_KEY = 'bricknet_bombtheme';
 
 // SVG inner content for each bomb type (viewBox="0 0 16 16", uses currentColor)
 const BOMB_ICONS = {

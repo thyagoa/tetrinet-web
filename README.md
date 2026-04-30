@@ -1,4 +1,4 @@
-# TetriNET
+# BrickNet
 
 Versão multiplayer do Tetris com blocos especiais (bombas), modos de jogo em times e bots com IA.
 
@@ -10,7 +10,7 @@ Ou faça deploy da pasta `public/` no **Netlify**.
 ## Estrutura do projeto
 
 ```
-tetrinet/
+bricknet/
 ├── public/               ← tudo que vai pro Netlify
 │   ├── index.html        ← tela inicial / lobby
 │   ├── game.html         ← tela de jogo

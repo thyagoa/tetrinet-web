@@ -190,7 +190,7 @@ class Board {
       activeRows.push([...this.grid[r]]);
     }
 
-    // Shuffle the rows themselves (like original TetriNET)
+    // Shuffle the rows themselves (like original BrickNet)
     for (let i = activeRows.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [activeRows[i], activeRows[j]] = [activeRows[j], activeRows[i]];
@@ -308,7 +308,7 @@ function calcScore(lines, level) {
   return (base[Math.min(lines,4)] || 800) * level;
 }
 
-// Specials per lines cleared (TetriNET style)
+// Specials per lines cleared (BrickNet style)
 function specialsForLines(lines) {
   if (lines >= 4) return 4;
   if (lines === 3) return 3;

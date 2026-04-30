@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TetriNET — Lobby</title>
+  <title>BrickNet — Lobby</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
@@ -13,7 +13,7 @@
 
   <div class="lobby-container lobby-room-container">
     <header class="lobby-header lobby-header-compact">
-      <h1 class="logo logo-sm">TETRI<span>NET</span></h1>
+      <h1 class="logo logo-sm">BRICK<span>NET</span></h1>
       <span style="font-family:var(--font-pixel);font-size:7px;color:var(--text2);letter-spacing:2px" data-i18n="ui.edition">BROWSER EDITION (v0.17b)</span>
       <div class="room-code-display">
         <span class="rc-label" data-i18n="ui.roomCode">CÓDIGO DA SALA</span>
@@ -112,7 +112,7 @@
   <script>
     i18n.load().then(() => i18n.applyToDOM());
     // ===== STATE =====
-    const lobbyData = JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}');
+    const lobbyData = JSON.parse(sessionStorage.getItem('bricknet_lobby') || '{}');
     if (!lobbyData.code) { window.location.href = 'index.html'; }
 
     const { code, isHost, playerName, mode: initMode, botDifficulty: initDiff } = lobbyData;
@@ -641,7 +641,7 @@
 
         // Re-join if socket reconnects (e.g. brief network drop or Render cold start)
         socketClient.socket.on('connect', () => {
-          const currentPlayerId = (JSON.parse(sessionStorage.getItem('tetrinet_lobby') || '{}')).playerId || null;
+          const currentPlayerId = (JSON.parse(sessionStorage.getItem('bricknet_lobby') || '{}')).playerId || null;
           socketClient.rejoinRoom({ code, playerName, oldPlayerId: currentPlayerId });
         });
 
@@ -663,9 +663,9 @@
       renderPlayers(room);
       renderSlots();
 
-      const winnerMsg = sessionStorage.getItem('tetrinet_lobby_msg');
+      const winnerMsg = sessionStorage.getItem('bricknet_lobby_msg');
       if (winnerMsg) {
-        sessionStorage.removeItem('tetrinet_lobby_msg');
+        sessionStorage.removeItem('bricknet_lobby_msg');
         addSystemMsg(winnerMsg);
       } else if (room.chat?.length > 0) {
         room.chat.forEach(e => addChatMessage(e));

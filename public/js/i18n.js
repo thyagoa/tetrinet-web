@@ -13,7 +13,7 @@
 //   i18n.applyToDOM()                              // translate [data-i18n] elements
 //   i18n.availableLocales()                        // list loaded locale metas
 
-const I18N_STORAGE_KEY = 'tetrinet_language';
+const I18N_STORAGE_KEY = 'bricknet_language';
 const LOCALES_PATH     = 'locales/';
 const DEFAULT_LOCALE   = 'pt-BR';
 
@@ -28,10 +28,10 @@ const KNOWN_LOCALES = [
 const LOCALE_PTBR = {
   "meta": {
     "code": "pt-BR", "name": "Português (Brasil)", "flag": "🇧🇷",
-    "author": "TetriNET Team", "version": "1.0", "gameVersion": "0.17b"
+    "author": "BrickNet Team", "version": "1.0", "gameVersion": "0.17b"
   },
   "ui": {
-    "gameName": "TETRINET",
+    "gameName": "BRICKNET",
     "edition": "BROWSER EDITION (v0.17b)",
     "yourName": "SEU NOME",
     "tutorial": "TUTORIAL",
@@ -54,7 +54,7 @@ const LOCALE_PTBR = {
   },
   "tutorial": {
     "title": "COMO JOGAR",
-    "intro": "TetriNET é um Tetris multiplayer com bombas especiais. Elimine seus oponentes limpando linhas e usando bombas contra eles!",
+    "intro": "BrickNet é um Tetris multiplayer com bombas especiais. Elimine seus oponentes limpando linhas e usando bombas contra eles!",
     "mechanics": "MECÂNICAS BÁSICAS",
     "mechanicsText": "Encaixe peças para formar linhas horizontais completas. Cada linha eliminada gera pontos e pode capturar bombas especiais. Quando seu campo encher, você é eliminado.",
     "specials": "BOMBAS ESPECIAIS",
